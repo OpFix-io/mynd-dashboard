@@ -12,9 +12,42 @@ function scoreEmit() { ScoreStore.subs.forEach(f => f()); }
 /* ------------------------------------------------------------ seat store
    Who sits in each seat. Separate from the score log because roles change for
    reasons that have nothing to do with a number, and a seat can be open. */
-const SEAT_KEY = "mynd.seats.v1";
-const SeatStore = { who:{}, subs:new Set() };
-try { const raw = localStorage.getItem(SEAT_KEY); if (raw) SeatStore.who = JSON.parse(raw) || {}; } catch (e) {}
+const SEAT_KEY = "mynd.seats.v2";
+const SeatStore = { who:{}, added:[], removed:[], subs:new Set() };
+try {
+  const raw = localStorage.getItem(SEAT_KEY);
+  if (raw) { const o = JSON.parse(raw) || {};
+    SeatStore.who = o.who || {}; SeatStore.added = o.added || []; SeatStore.removed = o.removed || []; }
+} catch (e) {}
+function seatSave() {
+  try { localStorage.setItem(SEAT_KEY, JSON.stringify({ who:SeatStore.who, added:SeatStore.added, removed:SeatStore.removed })); } catch (e) {}
+  seatEmit();
+}
+// The seat list as it stands: the written roles, less anything removed, plus anything added.
+function liveSeats() {
+  return SEATS.filter(s => SeatStore.removed.indexOf(s.id) < 0).concat(SeatStore.added);
+}
+function seatIsCustom(s) { return !!s.custom; }
+function seatAdd({ seat, short, who, reports, line }) {
+  const id = "custom-" + (Date.now().toString(36));
+  SeatStore.added = SeatStore.added.concat([{
+    id, custom:true, seat, short: short || seat, who: who || "Open", open: !who, reports: reports || "founder",
+    line: line || "No role document yet. Write one before this seat is held to a number.",
+    manages:"Not written yet", not:"Not written yet",
+    measure:"No metrics", need:"A role document, then a metric and 30 days of history",
+    doc:"Not written yet",
+  }]);
+  seatSave();
+  return id;
+}
+function seatRemove(id) {
+  if (id === "founder") return;
+  if (SeatStore.added.some(s => s.id === id)) SeatStore.added = SeatStore.added.filter(s => s.id !== id);
+  else if (SeatStore.removed.indexOf(id) < 0) SeatStore.removed = SeatStore.removed.concat([id]);
+  seatSave();
+}
+function seatRestore(id) { SeatStore.removed = SeatStore.removed.filter(x => x !== id); seatSave(); }
+function seatDirty() { return Object.keys(SeatStore.who).length > 0 || SeatStore.added.length > 0 || SeatStore.removed.length > 0; }
 function seatEmit() { SeatStore.subs.forEach(f => f()); }
 function useSeats() {
   const [, force] = useState(0);
@@ -27,13 +60,9 @@ function seatWho(s) {
   const t = String(v).trim();
   return { name: t === "" ? "Open" : t, open: t === "" || t.toLowerCase() === "open", edited:true };
 }
-function seatSetWho(id, v) {
-  SeatStore.who = { ...SeatStore.who, [id]: v };
-  try { localStorage.setItem(SEAT_KEY, JSON.stringify(SeatStore.who)); } catch (e) {}
-  seatEmit();
-}
+function seatSetWho(id, v) { SeatStore.who = { ...SeatStore.who, [id]: v }; seatSave(); }
 function seatResetWho() {
-  SeatStore.who = {};
+  SeatStore.who = {}; SeatStore.added = []; SeatStore.removed = [];
   try { localStorage.removeItem(SEAT_KEY); } catch (e) {}
   seatEmit();
 }
@@ -104,7 +133,7 @@ const HOLD = { "On target":1, "Improving":1 }, WATCH = { "Flat":1, "Baseline":1 
 const ST_TONE = { "On target":"good", "Improving":"good", "Flat":"warn", "Baseline":"info",
   "Off target":"bad", "Slipping":"bad", "Not measured":"mute" };
 const MEASURE_TONE = { "Measurable":"good", "Needs 30 days":"info", "Needs build":"warn", "Needs access":"warn",
-  "Needs three runs":"warn", "Needs roadmap":"bad", "Needs attribution":"bad" };
+  "Needs three runs":"warn", "Needs roadmap":"bad", "Needs attribution":"bad", "No metrics":"mute" };
 
 // status of a metric as of week i: that week's entry against the last one before it
 function statusAt(m, row, i) {
@@ -124,10 +153,11 @@ function metricRead(m) {
   const dir = latest == null || prior == null || latest === prior ? 0 : latest > prior ? 1 : -1;
   return { m, row, latest, prior, li, st, streak, dir, entries: idx.length };
 }
-const seatById = (id) => SEATS.find(s => s.id === id);
+const seatById = (id) => liveSeats().find(s => s.id === id) || SEATS.find(s => s.id === id);
 const seatMetrics = (id) => METRICS.filter(m => m.seat === id);
 function seatRead(s) {
   const reads = seatMetrics(s.id).map(metricRead);
+  if (!reads.length) return { s, reads:[], primary:null, hold:0, watch:0, off:0, none:0, stuck:[] };
   const n = (set) => reads.filter(r => set[r.st]).length;
   return { s, reads, primary: reads.find(r => r.m.primary), hold: n(HOLD), watch: n(WATCH), off: n(OFF),
     none: reads.filter(r => r.st === "Not measured").length, stuck: reads.filter(r => OFF[r.st]) };
@@ -233,7 +263,8 @@ const Dot = ({ st }) => <span className="dot" style={{ background:T(ST_TONE[st])
 /* ============================== ROLE SCORECARDS ============================== */
 function TeamScorecards({ go }) {
   const S = useScore();
-  const seats = SEATS.map(seatRead);
+  useSeats();
+  const seats = liveSeats().map(seatRead);
   const all = seats.flatMap(x => x.reads);
   const cnt = (set) => all.filter(r => set[r.st]).length;
   const shown = S.viewAs === "owner" ? seats : seats.filter(x => x.s.id === S.viewAs || (S.viewAs === "coo" && x.s.id === "warehouse"));
@@ -249,7 +280,7 @@ function TeamScorecards({ go }) {
             aria-label="Viewing as" style={{ background:"var(--surface-3)", color:"var(--ink)", border:"1px solid var(--rule)",
             borderRadius:"var(--r-sm)", padding:"6px 9px", fontSize:12 }}>
             <option value="owner">Viewing as the owner, all seats</option>
-            {SEATS.filter(s => !s.relationship && s.id !== "founder").map(s => <option key={s.id} value={s.id}>Viewing as {s.who}, {s.short}</option>)}
+            {liveSeats().filter(s => !s.relationship && s.id !== "founder").map(s => <option key={s.id} value={s.id}>Viewing as {seatWho(s).name}, {s.short}</option>)}
           </select>
           <ModeSwitch /></span>} />
       <ModeNote />
@@ -300,7 +331,7 @@ function TeamScorecards({ go }) {
             <div style={{ display:"grid", gridTemplateColumns:`minmax(130px,1fr) repeat(${weeks},minmax(24px,1fr))`, gap:3, minWidth:520 }}>
               <span />
               {Array.from({ length:weeks }, (_, i) => <span key={i} style={{ fontSize:8.5, color:"var(--ink-mute)", textAlign:"center" }}>{i % 2 === 0 ? WEEKS[i] : ""}</span>)}
-              {SEATS.map(s => <React.Fragment key={s.id}>
+              {liveSeats().map(s => <React.Fragment key={s.id}>
                 <span onClick={() => scoreSet("focus", s.id)} style={{ fontSize:11.5, color:"var(--ink-soft)", cursor:"pointer", whiteSpace:"nowrap" }}>{s.short}</span>
                 {Array.from({ length:weeks }, (_, i) => { const hh = seatHealthAt(s, i);
                   const tone = !hh ? null : hh.pct >= 75 ? "good" : hh.pct >= 50 ? "warn" : "bad";
@@ -318,21 +349,23 @@ function TeamScorecards({ go }) {
             style={{ cursor:"pointer", borderColor:on ? "var(--accent)" : undefined, display:"flex", flexDirection:"column", gap:10 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 }}>
               <div style={{ display:"flex", alignItems:"center", gap:9, minWidth:0 }}>
-                <Avatar name={s.who} size={28} tone={x.off ? "bad" : "accent"} />
+                <Avatar name={seatWho(s).open ? "?" : seatWho(s).name} size={28} tone={seatWho(s).open ? "warn" : x.off ? "bad" : "accent"} />
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13.5, fontWeight:600 }}>{s.seat}</div>
-                  <div style={{ fontSize:11, color:"var(--ink-mute)" }}>{s.who}</div>
+                  <div style={{ fontSize:11, color:"var(--ink-mute)" }}>{seatWho(s).open ? "Open, nobody in the seat" : seatWho(s).name}</div>
                 </div>
               </div>
               <Badge tone={x.off ? "bad" : x.hold ? "good" : "mute"}>{x.off ? `${x.off} stuck` : x.hold ? "Holding" : "Not measured"}</Badge>
             </div>
-            <div>
+            {p ? <div>
               <div style={{ fontSize:11, color:"var(--ink-mute)", marginBottom:2 }}>{p.m.name}</div>
               <div style={{ display:"flex", alignItems:"baseline", gap:9, flexWrap:"wrap" }}>
                 <span className="mono" style={{ fontSize:22, fontWeight:600, color:p.latest == null ? "var(--ink-mute)" : T(ST_TONE[p.st]) }}>{fmtM(p.m, p.latest)}</span>
                 <Badge tone={ST_TONE[p.st]}>{p.st}</Badge>
               </div>
-            </div>
+            </div> : <div style={{ fontSize:11.5, color:"var(--ink-mute)", lineHeight:1.55 }}>
+              No metrics yet. Write the role document, then give the seat a number and 30 days of history before it gets scored.
+            </div>}
             <div style={{ display:"flex", flexDirection:"column", gap:6, paddingTop:9, borderTop:"1px solid var(--rule-soft)" }}>
               {x.reads.filter(r => !r.m.primary).map(r => (
                 <div key={r.m.id} style={{ display:"grid", gridTemplateColumns:"auto 1fr auto", gap:8, alignItems:"center" }}>
@@ -365,7 +398,7 @@ function SeatDetail({ x, go, weeks }) {
     <Card pad={22} style={{ marginBottom:22 }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:14, flexWrap:"wrap", marginBottom:16 }}>
         <div style={{ minWidth:0, flex:"1 1 320px" }}>
-          <h3 style={{ fontSize:17, marginBottom:5 }}>{s.seat} · {s.who}</h3>
+          <h3 style={{ fontSize:17, marginBottom:5 }}>{s.seat} · {seatWho(s).open ? "seat open" : seatWho(s).name}</h3>
           <p style={{ fontSize:12.5, color:"var(--ink-soft)", lineHeight:1.55 }}>{s.line}</p>
           <p style={{ fontSize:11.5, color:"var(--ink-mute)", marginTop:6, lineHeight:1.55 }}>
             <b style={{ fontWeight:600 }}>Manages.</b> {s.manages}. <b style={{ fontWeight:600 }}>Doesn't.</b> {s.not} Role document: {s.doc}, in the Vault.</p>
@@ -401,12 +434,13 @@ function SeatDetail({ x, go, weeks }) {
 /* ============================== SCORE LOG ============================== */
 function ScoreLog() {
   const S = useScore();
+  useSeats();
   const live = S.mode === "live";
   const shownWeeks = live ? WEEKS.length : 12;
   const exportCsv = () => {
     const head = ["Seat","Who","Metric","Primary","Target","Cadence","Source", ...WEEKS, "Latest","Prior","Status"];
     const lines = [head].concat(METRICS.map(m => { const r = metricRead(m), s = seatById(m.seat);
-      return [s.seat, s.who, m.name, m.primary ? "Primary" : "", m.target, m.cadence, m.source,
+      return [s.seat, seatWho(s).name, m.name, m.primary ? "Primary" : "", m.target, m.cadence, m.source,
         ...r.row.map(v => v == null ? "" : v), r.latest ?? "", r.prior ?? "", r.st]; }));
     const csv = lines.map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -431,9 +465,10 @@ function ScoreLog() {
             {WEEKS.slice(0, shownWeeks).map((w, i) => <th key={w} style={{ textAlign:"right", color:i === 0 ? "var(--accent)" : undefined }}>{w}</th>)}
             <th>Status</th>
           </tr></thead>
-          <tbody>{SEATS.map(s => <React.Fragment key={s.id}>
+          <tbody>{liveSeats().map(s => <React.Fragment key={s.id}>
             <tr><td colSpan={shownWeeks + 3} style={{ background:"var(--surface-3)", fontWeight:650, fontSize:12 }}>
-              <span style={{ position:"sticky", left:13 }}>{s.seat} <span style={{ fontWeight:400, color:"var(--ink-mute)" }}>· {s.who}</span></span></td></tr>
+              <span style={{ position:"sticky", left:13 }}>{s.seat} <span style={{ fontWeight:400, color:"var(--ink-mute)" }}>· {seatWho(s).name}</span></span></td></tr>
+            {seatMetrics(s.id).length === 0 && <tr><td colSpan={shownWeeks + 3} style={{ fontSize:11.5, color:"var(--ink-mute)" }}>No metrics on this seat yet. It gets a row here once it has a role document and a number.</td></tr>}
             {seatMetrics(s.id).map(m => { const r = metricRead(m); return (
               <tr key={m.id}>
                 <td style={sticky}>
@@ -482,9 +517,19 @@ function ScoreLog() {
 function OrgCard({ s, go }) {
   useSeats();
   const x = seatRead(s), p = x.primary;
+  const clickable = !!p;
   return (
-    <Card pad={16} hover onClick={() => { scoreSet("viewAs", "owner"); scoreSet("focus", s.id); go("scorecards"); }}
-      style={{ cursor:"pointer", display:"flex", flexDirection:"column", gap:8, borderStyle:s.relationship ? "dashed" : undefined }}>
+    <Card pad={16} hover={clickable}
+      onClick={clickable ? () => { scoreSet("viewAs", "owner"); scoreSet("focus", s.id); go("scorecards"); } : undefined}
+      style={{ cursor:clickable ? "pointer" : "default", display:"flex", flexDirection:"column", gap:8,
+               position:"relative", borderStyle:(s.relationship || s.custom) ? "dashed" : undefined }}>
+      {s.id !== "founder" && (
+        <button title="Remove this seat"
+          onClick={e => { e.stopPropagation(); seatRemove(s.id); }}
+          style={{ position:"absolute", top:8, right:8, width:20, height:20, lineHeight:1, borderRadius:5,
+                   background:"none", border:"1px solid var(--rule)", color:"var(--ink-mute)",
+                   fontSize:13, cursor:"pointer", padding:0 }}>×</button>
+      )}
       <div style={{ display:"flex", alignItems:"center", gap:9 }}>
         <Avatar name={seatWho(s).open ? "?" : seatWho(s).name} size={30}
           tone={s.relationship ? "mute" : seatWho(s).open ? "warn" : "accent"} />
@@ -494,17 +539,62 @@ function OrgCard({ s, go }) {
         </div>
       </div>
       <p style={{ fontSize:11.5, color:"var(--ink-soft)", lineHeight:1.5 }}>{s.line}</p>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, paddingTop:8, borderTop:"1px solid var(--rule-soft)" }}>
-        <span style={{ fontSize:10.5, color:"var(--ink-mute)", minWidth:0 }}>{p.m.name}</span>
-        <span className="mono" style={{ fontSize:13, fontWeight:600, color:p.latest == null ? "var(--ink-mute)" : T(ST_TONE[p.st]), whiteSpace:"nowrap" }}>{fmtM(p.m, p.latest)}</span>
-      </div>
-      <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
-        {x.reads.map(r => <Dot key={r.m.id} st={r.st} />)}
-        <span style={{ fontSize:10.5, color:"var(--ink-mute)", marginLeft:4 }}>{x.hold} of {x.reads.length} holding</span>
-      </div>
+      {p ? <>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, paddingTop:8, borderTop:"1px solid var(--rule-soft)" }}>
+          <span style={{ fontSize:10.5, color:"var(--ink-mute)", minWidth:0 }}>{p.m.name}</span>
+          <span className="mono" style={{ fontSize:13, fontWeight:600, color:p.latest == null ? "var(--ink-mute)" : T(ST_TONE[p.st]), whiteSpace:"nowrap" }}>{fmtM(p.m, p.latest)}</span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" }}>
+          {x.reads.map(r => <Dot key={r.m.id} st={r.st} />)}
+          <span style={{ fontSize:10.5, color:"var(--ink-mute)", marginLeft:4 }}>{x.hold} of {x.reads.length} holding</span>
+        </div>
+      </> : (
+        <div style={{ paddingTop:8, borderTop:"1px solid var(--rule-soft)" }}>
+          <span style={{ fontSize:10.5, color:"var(--ink-mute)" }}>
+            No metrics yet. A seat gets scored once it has a role document and a number.</span>
+        </div>
+      )}
       {seatWho(s).open && <Badge tone="warn" style={{ alignSelf:"flex-start" }}>Seat open</Badge>}
+      {s.custom && <Badge tone="violet" style={{ alignSelf:"flex-start" }}>Added here</Badge>}
       {s.moving && <Badge tone="info" style={{ alignSelf:"flex-start" }}>Moving to the COO</Badge>}
       {s.relationship && <Badge tone="mute" style={{ alignSelf:"flex-start" }}>A relationship, not a person</Badge>}
+    </Card>
+  );
+}
+
+function AddSeat({ onDone }) {
+  const [seat, setSeat] = useState(""), [who, setWho] = useState(""), [reports, setReports] = useState("founder");
+  const [line, setLine] = useState("");
+  const inp = { background:"var(--surface-3)", border:"1px solid var(--rule)", borderRadius:"var(--r-sm)",
+                color:"var(--ink)", fontSize:12.5, padding:"7px 10px", outline:"none", width:"100%" };
+  const live = liveSeats();
+  return (
+    <Card pad={18} style={{ marginBottom:22, borderColor:"var(--accent)" }}>
+      <SecLabel icon="team">Add a seat</SecLabel>
+      <G c={4} gap={11} style={{ marginBottom:11 }}>
+        <div><div style={{ fontSize:10.5, color:"var(--ink-mute)", marginBottom:4 }}>Role</div>
+          <input autoFocus value={seat} onChange={e => setSeat(e.target.value)} placeholder="Head of Growth" style={inp} /></div>
+        <div><div style={{ fontSize:10.5, color:"var(--ink-mute)", marginBottom:4 }}>Who holds it</div>
+          <input value={who} onChange={e => setWho(e.target.value)} placeholder="Leave blank for open" style={inp} /></div>
+        <div><div style={{ fontSize:10.5, color:"var(--ink-mute)", marginBottom:4 }}>Reports to</div>
+          <select value={reports} onChange={e => setReports(e.target.value)} style={inp}>
+            {live.filter(s => s.id === "founder" || s.id === "coo").map(s =>
+              <option key={s.id} value={s.id}>{s.short}</option>)}
+          </select></div>
+        <div><div style={{ fontSize:10.5, color:"var(--ink-mute)", marginBottom:4 }}>What the seat is for</div>
+          <input value={line} onChange={e => setLine(e.target.value)} placeholder="One line" style={inp} /></div>
+      </G>
+      <div style={{ display:"flex", gap:9, alignItems:"center" }}>
+        <button disabled={!seat.trim()}
+          onClick={() => { seatAdd({ seat:seat.trim(), short:seat.trim(), who:who.trim(), reports, line:line.trim() }); onDone(); }}
+          style={{ background:seat.trim() ? "var(--accent)" : "var(--surface-3)", border:"none", borderRadius:"var(--r-sm)",
+                   color:seat.trim() ? "#fff" : "var(--ink-mute)", fontSize:12, fontWeight:600,
+                   padding:"8px 14px", cursor:seat.trim() ? "pointer" : "default" }}>Add the seat</button>
+        <button onClick={onDone} style={{ background:"none", border:"1px solid var(--rule)", borderRadius:"var(--r-sm)",
+          color:"var(--ink-mute)", fontSize:12, padding:"8px 14px", cursor:"pointer" }}>Cancel</button>
+        <span style={{ fontSize:11.5, color:"var(--ink-mute)" }}>
+          A seat added here carries no metrics. Write the role document and give it a number before it gets scored.</span>
+      </div>
     </Card>
   );
 }
@@ -512,25 +602,63 @@ function OrgCard({ s, go }) {
 function TeamOrg({ go }) {
   const S = useScore();
   const seats = useSeats();
-  const owner = seatById("founder"), coo = seatById("coo");
-  const direct = SEATS.filter(s => s.reports === "founder" && s.id !== "coo" && !s.moving);
-  const underCoo = SEATS.filter(s => s.reports === "coo");
-  const moving = SEATS.filter(s => s.moving === "coo");
+  const [adding, setAdding] = useState(false);
+  const removed = SeatStore.removed.map(id => SEATS.find(s => s.id === id)).filter(Boolean);
+  const L = liveSeats();
+  const owner = seatById("founder"), coo = L.find(s => s.id === "coo");
+  const cooGone = !coo;
+  const direct = L.filter(s => s.id !== "founder" && s.id !== "coo"
+    && (cooGone ? (s.reports === "founder" || s.reports === "coo") : (!s.moving && s.reports === "founder")));
+  const underCoo = cooGone ? [] : L.filter(s => s.reports === "coo");
+  const moving = L.filter(s => s.moving === "coo" && !cooGone);
+  const orphans = cooGone ? L.filter(s => s.reports === "coo" || s.moving === "coo") : [];
   const fo = seatRead(owner), fr = fo.primary;
   const steps = S.mode === "sample" ? TRANSFERS : TRANSFERS.map(t => ({ ...t, step: t.step == null ? null : 0 }));
   return (
     <div className="page-in">
       <PageHead title="Org chart" sub="Who does what, who it reports to, and how each seat is scoring across its metrics."
-        meta="Nine seats, each with a written role document. Click a name to change who holds the seat, or clear it to mark the seat open. Click anywhere else on a card for its scorecard."
+        meta={`${L.length} seats. Click a name to change who holds it, or clear it to mark the seat open. Use the × to remove a seat, and Add a seat for a new one. Click anywhere else on a card for its scorecard.`}
         right={<span style={{ display:"inline-flex", gap:10, alignItems:"center" }}>
-          {Object.keys(seats.who).length > 0 &&
+          <button onClick={() => setAdding(a => !a)}
+            style={{ background:"var(--accent)", border:"none", borderRadius:"var(--r-sm)",
+                     color:"#fff", fontSize:11, fontWeight:600, padding:"6px 11px", cursor:"pointer" }}>
+            Add a seat
+          </button>
+          {seatDirty() &&
             <button onClick={seatResetWho}
               style={{ background:"none", border:"1px solid var(--rule)", borderRadius:"var(--r-sm)",
                        color:"var(--ink-mute)", fontSize:11, padding:"5px 10px", cursor:"pointer" }}>
-              Reset names
+              Reset the chart
             </button>}
           <ModeSwitch />
         </span>} />
+
+      {adding && <AddSeat onDone={() => setAdding(false)} />}
+
+      {removed.length > 0 && (
+        <Card pad={14} style={{ marginBottom:20, borderStyle:"dashed" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+            <span style={{ fontSize:11.5, color:"var(--ink-mute)" }}>
+              {removed.length === 1 ? "One written seat is off the chart" : `${removed.length} written seats are off the chart`}. They stay in the role documents until you say otherwise.
+            </span>
+            {removed.map(s => (
+              <button key={s.id} onClick={() => seatRestore(s.id)}
+                style={{ background:"none", border:"1px solid var(--rule)", borderRadius:"var(--r-sm)",
+                         color:"var(--ink)", fontSize:11.5, padding:"4px 10px", cursor:"pointer" }}>
+                Put {s.short} back
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {cooGone && orphans.length > 0 && (
+        <Card pad={14} style={{ marginBottom:20, borderColor:"var(--warn)" }}>
+          <span style={{ fontSize:11.5, color:"var(--ink-soft)" }}>
+            The COO seat is off the chart, so {orphans.length === 1 ? "one seat that reported into it reports" : `${orphans.length} seats that reported into it report`} to the owner instead. That's the founder dependency going back up, not a reorganization.
+          </span>
+        </Card>
+      )}
 
       <div style={{ maxWidth:340, margin:"0 auto" }}>
         <div className="sec-label" style={{ justifyContent:"center" }}>Owner</div>
@@ -546,17 +674,22 @@ function TeamOrg({ go }) {
           </div>
         </Card>
       </div>
-      <div style={{ width:1, height:20, background:"var(--rule)", margin:"0 auto" }} />
-      <div style={{ maxWidth:340, margin:"0 auto 22px" }}><OrgCard s={coo} go={go} /></div>
+      {!cooGone && <>
+        <div style={{ width:1, height:20, background:"var(--rule)", margin:"0 auto" }} />
+        <div style={{ maxWidth:340, margin:"0 auto 22px" }}><OrgCard s={coo} go={go} /></div>
+      </>}
+      {cooGone && <div style={{ height:22 }} />}
 
       <SecLabel icon="team" right={`${direct.length} seats`}>Reports to the owner</SecLabel>
       <G c={4} name="4" gap={14} style={{ marginBottom:22 }}>
         {direct.map(s => <OrgCard key={s.id} s={s} go={go} />)}
       </G>
-      <SecLabel icon="team" right={`${underCoo.length} owned · ${moving.length} reporting to the owner until they move`}>Owned by the COO, or moving to the COO</SecLabel>
-      <G c={3} name="3" gap={14} style={{ marginBottom:26 }}>
-        {underCoo.concat(moving).map(s => <OrgCard key={s.id} s={s} go={go} />)}
-      </G>
+      {!cooGone && <>
+        <SecLabel icon="team" right={`${underCoo.length} owned · ${moving.length} reporting to the owner until they move`}>Owned by the COO, or moving to the COO</SecLabel>
+        <G c={3} name="3" gap={14} style={{ marginBottom:26 }}>
+          {underCoo.concat(moving).map(s => <OrgCard key={s.id} s={s} go={go} />)}
+        </G>
+      </>}
 
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1fr 1.5fr", marginBottom:20 }}>
         <Card pad={20}>

@@ -242,10 +242,18 @@ dashboard. One go-forward asset.
 
 ## Thirteenth pass, the call of 2 October
 
-- **Org chart is editable.** Click a name to change who holds a seat, or clear it to mark the
-  seat open. Edits persist in the browser under `mynd.seats.v1`, separate from the score log
-  because roles change for reasons that have nothing to do with a number. A reset restores the
-  defaults. Clicking anywhere else on a card still routes to the scorecard.
+- **Org chart is editable, names and seats both.** Click a name to change who holds a seat, or
+  clear it to mark the seat open. Add a seat opens a four field form: role, who holds it, who it
+  reports to, and one line on what it's for. The x on a card takes a seat off the chart, and a
+  written seat that comes off can be put back from the strip at the top, because the role
+  documents still carry it. The founder seat has no x. Edits persist in the browser under
+  `mynd.seats.v2`, separate from the score log because roles change for reasons that have
+  nothing to do with a number. A reset restores the defaults. Clicking anywhere else on a card
+  still routes to the scorecard.
+- **Added seats flow through the whole team layer.** They show on the chart, in the viewing as
+  list, on the scorecards and in the score log, each marked as carrying no metrics until a role
+  document and a number exist. Taking the COO seat off the chart moves everything under it back
+  to the owner and says so on the page, because that's the founder dependency going back up.
 - **The COO seat is open.** Camila is out of the data entirely.
 - **Redline alerts added** under Inventory. Reorder point per SKU, the gap against stock on
   hand, what the alert triggers and who it goes to. Thresholds are typed over and persist under

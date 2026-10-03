@@ -12153,15 +12153,77 @@ function scoreEmit() {
 /* ------------------------------------------------------------ seat store
    Who sits in each seat. Separate from the score log because roles change for
    reasons that have nothing to do with a number, and a seat can be open. */
-const SEAT_KEY = "mynd.seats.v1";
+const SEAT_KEY = "mynd.seats.v2";
 const SeatStore = {
   who: {},
+  added: [],
+  removed: [],
   subs: new Set()
 };
 try {
   const raw = localStorage.getItem(SEAT_KEY);
-  if (raw) SeatStore.who = JSON.parse(raw) || {};
+  if (raw) {
+    const o = JSON.parse(raw) || {};
+    SeatStore.who = o.who || {};
+    SeatStore.added = o.added || [];
+    SeatStore.removed = o.removed || [];
+  }
 } catch (e) {}
+function seatSave() {
+  try {
+    localStorage.setItem(SEAT_KEY, JSON.stringify({
+      who: SeatStore.who,
+      added: SeatStore.added,
+      removed: SeatStore.removed
+    }));
+  } catch (e) {}
+  seatEmit();
+}
+// The seat list as it stands: the written roles, less anything removed, plus anything added.
+function liveSeats() {
+  return SEATS.filter(s => SeatStore.removed.indexOf(s.id) < 0).concat(SeatStore.added);
+}
+function seatIsCustom(s) {
+  return !!s.custom;
+}
+function seatAdd({
+  seat,
+  short,
+  who,
+  reports,
+  line
+}) {
+  const id = "custom-" + Date.now().toString(36);
+  SeatStore.added = SeatStore.added.concat([{
+    id,
+    custom: true,
+    seat,
+    short: short || seat,
+    who: who || "Open",
+    open: !who,
+    reports: reports || "founder",
+    line: line || "No role document yet. Write one before this seat is held to a number.",
+    manages: "Not written yet",
+    not: "Not written yet",
+    measure: "No metrics",
+    need: "A role document, then a metric and 30 days of history",
+    doc: "Not written yet"
+  }]);
+  seatSave();
+  return id;
+}
+function seatRemove(id) {
+  if (id === "founder") return;
+  if (SeatStore.added.some(s => s.id === id)) SeatStore.added = SeatStore.added.filter(s => s.id !== id);else if (SeatStore.removed.indexOf(id) < 0) SeatStore.removed = SeatStore.removed.concat([id]);
+  seatSave();
+}
+function seatRestore(id) {
+  SeatStore.removed = SeatStore.removed.filter(x => x !== id);
+  seatSave();
+}
+function seatDirty() {
+  return Object.keys(SeatStore.who).length > 0 || SeatStore.added.length > 0 || SeatStore.removed.length > 0;
+}
 function seatEmit() {
   SeatStore.subs.forEach(f => f());
 }
@@ -12193,13 +12255,12 @@ function seatSetWho(id, v) {
     ...SeatStore.who,
     [id]: v
   };
-  try {
-    localStorage.setItem(SEAT_KEY, JSON.stringify(SeatStore.who));
-  } catch (e) {}
-  seatEmit();
+  seatSave();
 }
 function seatResetWho() {
   SeatStore.who = {};
+  SeatStore.added = [];
+  SeatStore.removed = [];
   try {
     localStorage.removeItem(SEAT_KEY);
   } catch (e) {}
@@ -12344,7 +12405,8 @@ const MEASURE_TONE = {
   "Needs access": "warn",
   "Needs three runs": "warn",
   "Needs roadmap": "bad",
-  "Needs attribution": "bad"
+  "Needs attribution": "bad",
+  "No metrics": "mute"
 };
 
 // status of a metric as of week i: that week's entry against the last one before it
@@ -12383,10 +12445,20 @@ function metricRead(m) {
     entries: idx.length
   };
 }
-const seatById = id => SEATS.find(s => s.id === id);
+const seatById = id => liveSeats().find(s => s.id === id) || SEATS.find(s => s.id === id);
 const seatMetrics = id => METRICS.filter(m => m.seat === id);
 function seatRead(s) {
   const reads = seatMetrics(s.id).map(metricRead);
+  if (!reads.length) return {
+    s,
+    reads: [],
+    primary: null,
+    hold: 0,
+    watch: 0,
+    off: 0,
+    none: 0,
+    stuck: []
+  };
   const n = set => reads.filter(r => set[r.st]).length;
   return {
     s,
@@ -12652,7 +12724,8 @@ function TeamScorecards({
   go
 }) {
   const S = useScore();
-  const seats = SEATS.map(seatRead);
+  useSeats();
+  const seats = liveSeats().map(seatRead);
   const all = seats.flatMap(x => x.reads);
   const cnt = set => all.filter(r => set[r.st]).length;
   const shown = S.viewAs === "owner" ? seats : seats.filter(x => x.s.id === S.viewAs || S.viewAs === "coo" && x.s.id === "warehouse");
@@ -12689,10 +12762,10 @@ function TeamScorecards({
       }
     }, /*#__PURE__*/React.createElement("option", {
       value: "owner"
-    }, "Viewing as the owner, all seats"), SEATS.filter(s => !s.relationship && s.id !== "founder").map(s => /*#__PURE__*/React.createElement("option", {
+    }, "Viewing as the owner, all seats"), liveSeats().filter(s => !s.relationship && s.id !== "founder").map(s => /*#__PURE__*/React.createElement("option", {
       key: s.id,
       value: s.id
-    }, "Viewing as ", s.who, ", ", s.short))), /*#__PURE__*/React.createElement(ModeSwitch, null))
+    }, "Viewing as ", seatWho(s).name, ", ", s.short))), /*#__PURE__*/React.createElement(ModeSwitch, null))
   }), /*#__PURE__*/React.createElement(ModeNote, null), S.viewAs === "owner" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(G, {
     c: 4,
     style: {
@@ -12865,7 +12938,7 @@ function TeamScorecards({
       color: "var(--ink-mute)",
       textAlign: "center"
     }
-  }, i % 2 === 0 ? WEEKS[i] : "")), SEATS.map(s => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, i % 2 === 0 ? WEEKS[i] : "")), liveSeats().map(s => /*#__PURE__*/React.createElement(React.Fragment, {
     key: s.id
   }, /*#__PURE__*/React.createElement("span", {
     onClick: () => scoreSet("focus", s.id),
@@ -12930,9 +13003,9 @@ function TeamScorecards({
         minWidth: 0
       }
     }, /*#__PURE__*/React.createElement(Avatar, {
-      name: s.who,
+      name: seatWho(s).open ? "?" : seatWho(s).name,
       size: 28,
-      tone: x.off ? "bad" : "accent"
+      tone: seatWho(s).open ? "warn" : x.off ? "bad" : "accent"
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         minWidth: 0
@@ -12947,9 +13020,9 @@ function TeamScorecards({
         fontSize: 11,
         color: "var(--ink-mute)"
       }
-    }, s.who))), /*#__PURE__*/React.createElement(Badge, {
+    }, seatWho(s).open ? "Open, nobody in the seat" : seatWho(s).name))), /*#__PURE__*/React.createElement(Badge, {
       tone: x.off ? "bad" : x.hold ? "good" : "mute"
-    }, x.off ? `${x.off} stuck` : x.hold ? "Holding" : "Not measured")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }, x.off ? `${x.off} stuck` : x.hold ? "Holding" : "Not measured")), p ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
         color: "var(--ink-mute)",
@@ -12971,7 +13044,13 @@ function TeamScorecards({
       }
     }, fmtM(p.m, p.latest)), /*#__PURE__*/React.createElement(Badge, {
       tone: ST_TONE[p.st]
-    }, p.st))), /*#__PURE__*/React.createElement("div", {
+    }, p.st))) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--ink-mute)",
+        lineHeight: 1.55
+      }
+    }, "No metrics yet. Write the role document, then give the seat a number and 30 days of history before it gets scored."), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",
@@ -13057,7 +13136,7 @@ function SeatDetail({
       fontSize: 17,
       marginBottom: 5
     }
-  }, s.seat, " \xB7 ", s.who), /*#__PURE__*/React.createElement("p", {
+  }, s.seat, " \xB7 ", seatWho(s).open ? "seat open" : seatWho(s).name), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12.5,
       color: "var(--ink-soft)",
@@ -13164,6 +13243,7 @@ function SeatDetail({
 /* ============================== SCORE LOG ============================== */
 function ScoreLog() {
   const S = useScore();
+  useSeats();
   const live = S.mode === "live";
   const shownWeeks = live ? WEEKS.length : 12;
   const exportCsv = () => {
@@ -13171,7 +13251,7 @@ function ScoreLog() {
     const lines = [head].concat(METRICS.map(m => {
       const r = metricRead(m),
         s = seatById(m.seat);
-      return [s.seat, s.who, m.name, m.primary ? "Primary" : "", m.target, m.cadence, m.source, ...r.row.map(v => v == null ? "" : v), r.latest ?? "", r.prior ?? "", r.st];
+      return [s.seat, seatWho(s).name, m.name, m.primary ? "Primary" : "", m.target, m.cadence, m.source, ...r.row.map(v => v == null ? "" : v), r.latest ?? "", r.prior ?? "", r.st];
     }));
     const csv = lines.map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -13240,7 +13320,7 @@ function ScoreLog() {
       textAlign: "right",
       color: i === 0 ? "var(--accent)" : undefined
     }
-  }, w)), /*#__PURE__*/React.createElement("th", null, "Status"))), /*#__PURE__*/React.createElement("tbody", null, SEATS.map(s => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, w)), /*#__PURE__*/React.createElement("th", null, "Status"))), /*#__PURE__*/React.createElement("tbody", null, liveSeats().map(s => /*#__PURE__*/React.createElement(React.Fragment, {
     key: s.id
   }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
     colSpan: shownWeeks + 3,
@@ -13259,7 +13339,13 @@ function ScoreLog() {
       fontWeight: 400,
       color: "var(--ink-mute)"
     }
-  }, "\xB7 ", s.who)))), seatMetrics(s.id).map(m => {
+  }, "\xB7 ", seatWho(s).name)))), seatMetrics(s.id).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: shownWeeks + 3,
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-mute)"
+    }
+  }, "No metrics on this seat yet. It gets a row here once it has a role document and a number.")), seatMetrics(s.id).map(m => {
     const r = metricRead(m);
     return /*#__PURE__*/React.createElement("tr", {
       key: m.id
@@ -13343,22 +13429,45 @@ function OrgCard({
   useSeats();
   const x = seatRead(s),
     p = x.primary;
+  const clickable = !!p;
   return /*#__PURE__*/React.createElement(Card, {
     pad: 16,
-    hover: true,
-    onClick: () => {
+    hover: clickable,
+    onClick: clickable ? () => {
       scoreSet("viewAs", "owner");
       scoreSet("focus", s.id);
       go("scorecards");
-    },
+    } : undefined,
     style: {
-      cursor: "pointer",
+      cursor: clickable ? "pointer" : "default",
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      borderStyle: s.relationship ? "dashed" : undefined
+      position: "relative",
+      borderStyle: s.relationship || s.custom ? "dashed" : undefined
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, s.id !== "founder" && /*#__PURE__*/React.createElement("button", {
+    title: "Remove this seat",
+    onClick: e => {
+      e.stopPropagation();
+      seatRemove(s.id);
+    },
+    style: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      width: 20,
+      height: 20,
+      lineHeight: 1,
+      borderRadius: 5,
+      background: "none",
+      border: "1px solid var(--rule)",
+      color: "var(--ink-mute)",
+      fontSize: 13,
+      cursor: "pointer",
+      padding: 0
+    }
+  }, "\xD7"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -13386,7 +13495,7 @@ function OrgCard({
       color: "var(--ink-soft)",
       lineHeight: 1.5
     }
-  }, s.line), /*#__PURE__*/React.createElement("div", {
+  }, s.line), p ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -13425,12 +13534,27 @@ function OrgCard({
       color: "var(--ink-mute)",
       marginLeft: 4
     }
-  }, x.hold, " of ", x.reads.length, " holding")), seatWho(s).open && /*#__PURE__*/React.createElement(Badge, {
+  }, x.hold, " of ", x.reads.length, " holding"))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingTop: 8,
+      borderTop: "1px solid var(--rule-soft)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-mute)"
+    }
+  }, "No metrics yet. A seat gets scored once it has a role document and a number.")), seatWho(s).open && /*#__PURE__*/React.createElement(Badge, {
     tone: "warn",
     style: {
       alignSelf: "flex-start"
     }
-  }, "Seat open"), s.moving && /*#__PURE__*/React.createElement(Badge, {
+  }, "Seat open"), s.custom && /*#__PURE__*/React.createElement(Badge, {
+    tone: "violet",
+    style: {
+      alignSelf: "flex-start"
+    }
+  }, "Added here"), s.moving && /*#__PURE__*/React.createElement(Badge, {
     tone: "info",
     style: {
       alignSelf: "flex-start"
@@ -13442,16 +13566,146 @@ function OrgCard({
     }
   }, "A relationship, not a person"));
 }
+function AddSeat({
+  onDone
+}) {
+  const [seat, setSeat] = useState(""),
+    [who, setWho] = useState(""),
+    [reports, setReports] = useState("founder");
+  const [line, setLine] = useState("");
+  const inp = {
+    background: "var(--surface-3)",
+    border: "1px solid var(--rule)",
+    borderRadius: "var(--r-sm)",
+    color: "var(--ink)",
+    fontSize: 12.5,
+    padding: "7px 10px",
+    outline: "none",
+    width: "100%"
+  };
+  const live = liveSeats();
+  return /*#__PURE__*/React.createElement(Card, {
+    pad: 18,
+    style: {
+      marginBottom: 22,
+      borderColor: "var(--accent)"
+    }
+  }, /*#__PURE__*/React.createElement(SecLabel, {
+    icon: "team"
+  }, "Add a seat"), /*#__PURE__*/React.createElement(G, {
+    c: 4,
+    gap: 11,
+    style: {
+      marginBottom: 11
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-mute)",
+      marginBottom: 4
+    }
+  }, "Role"), /*#__PURE__*/React.createElement("input", {
+    autoFocus: true,
+    value: seat,
+    onChange: e => setSeat(e.target.value),
+    placeholder: "Head of Growth",
+    style: inp
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-mute)",
+      marginBottom: 4
+    }
+  }, "Who holds it"), /*#__PURE__*/React.createElement("input", {
+    value: who,
+    onChange: e => setWho(e.target.value),
+    placeholder: "Leave blank for open",
+    style: inp
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-mute)",
+      marginBottom: 4
+    }
+  }, "Reports to"), /*#__PURE__*/React.createElement("select", {
+    value: reports,
+    onChange: e => setReports(e.target.value),
+    style: inp
+  }, live.filter(s => s.id === "founder" || s.id === "coo").map(s => /*#__PURE__*/React.createElement("option", {
+    key: s.id,
+    value: s.id
+  }, s.short)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-mute)",
+      marginBottom: 4
+    }
+  }, "What the seat is for"), /*#__PURE__*/React.createElement("input", {
+    value: line,
+    onChange: e => setLine(e.target.value),
+    placeholder: "One line",
+    style: inp
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 9,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    disabled: !seat.trim(),
+    onClick: () => {
+      seatAdd({
+        seat: seat.trim(),
+        short: seat.trim(),
+        who: who.trim(),
+        reports,
+        line: line.trim()
+      });
+      onDone();
+    },
+    style: {
+      background: seat.trim() ? "var(--accent)" : "var(--surface-3)",
+      border: "none",
+      borderRadius: "var(--r-sm)",
+      color: seat.trim() ? "#fff" : "var(--ink-mute)",
+      fontSize: 12,
+      fontWeight: 600,
+      padding: "8px 14px",
+      cursor: seat.trim() ? "pointer" : "default"
+    }
+  }, "Add the seat"), /*#__PURE__*/React.createElement("button", {
+    onClick: onDone,
+    style: {
+      background: "none",
+      border: "1px solid var(--rule)",
+      borderRadius: "var(--r-sm)",
+      color: "var(--ink-mute)",
+      fontSize: 12,
+      padding: "8px 14px",
+      cursor: "pointer"
+    }
+  }, "Cancel"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-mute)"
+    }
+  }, "A seat added here carries no metrics. Write the role document and give it a number before it gets scored.")));
+}
 function TeamOrg({
   go
 }) {
   const S = useScore();
   const seats = useSeats();
+  const [adding, setAdding] = useState(false);
+  const removed = SeatStore.removed.map(id => SEATS.find(s => s.id === id)).filter(Boolean);
+  const L = liveSeats();
   const owner = seatById("founder"),
-    coo = seatById("coo");
-  const direct = SEATS.filter(s => s.reports === "founder" && s.id !== "coo" && !s.moving);
-  const underCoo = SEATS.filter(s => s.reports === "coo");
-  const moving = SEATS.filter(s => s.moving === "coo");
+    coo = L.find(s => s.id === "coo");
+  const cooGone = !coo;
+  const direct = L.filter(s => s.id !== "founder" && s.id !== "coo" && (cooGone ? s.reports === "founder" || s.reports === "coo" : !s.moving && s.reports === "founder"));
+  const underCoo = cooGone ? [] : L.filter(s => s.reports === "coo");
+  const moving = L.filter(s => s.moving === "coo" && !cooGone);
+  const orphans = cooGone ? L.filter(s => s.reports === "coo" || s.moving === "coo") : [];
   const fo = seatRead(owner),
     fr = fo.primary;
   const steps = S.mode === "sample" ? TRANSFERS : TRANSFERS.map(t => ({
@@ -13463,14 +13717,26 @@ function TeamOrg({
   }, /*#__PURE__*/React.createElement(PageHead, {
     title: "Org chart",
     sub: "Who does what, who it reports to, and how each seat is scoring across its metrics.",
-    meta: "Nine seats, each with a written role document. Click a name to change who holds the seat, or clear it to mark the seat open. Click anywhere else on a card for its scorecard.",
+    meta: `${L.length} seats. Click a name to change who holds it, or clear it to mark the seat open. Use the × to remove a seat, and Add a seat for a new one. Click anywhere else on a card for its scorecard.`,
     right: /*#__PURE__*/React.createElement("span", {
       style: {
         display: "inline-flex",
         gap: 10,
         alignItems: "center"
       }
-    }, Object.keys(seats.who).length > 0 && /*#__PURE__*/React.createElement("button", {
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setAdding(a => !a),
+      style: {
+        background: "var(--accent)",
+        border: "none",
+        borderRadius: "var(--r-sm)",
+        color: "#fff",
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "6px 11px",
+        cursor: "pointer"
+      }
+    }, "Add a seat"), seatDirty() && /*#__PURE__*/React.createElement("button", {
       onClick: seatResetWho,
       style: {
         background: "none",
@@ -13481,8 +13747,51 @@ function TeamOrg({
         padding: "5px 10px",
         cursor: "pointer"
       }
-    }, "Reset names"), /*#__PURE__*/React.createElement(ModeSwitch, null))
-  }), /*#__PURE__*/React.createElement("div", {
+    }, "Reset the chart"), /*#__PURE__*/React.createElement(ModeSwitch, null))
+  }), adding && /*#__PURE__*/React.createElement(AddSeat, {
+    onDone: () => setAdding(false)
+  }), removed.length > 0 && /*#__PURE__*/React.createElement(Card, {
+    pad: 14,
+    style: {
+      marginBottom: 20,
+      borderStyle: "dashed"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-mute)"
+    }
+  }, removed.length === 1 ? "One written seat is off the chart" : `${removed.length} written seats are off the chart`, ". They stay in the role documents until you say otherwise."), removed.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.id,
+    onClick: () => seatRestore(s.id),
+    style: {
+      background: "none",
+      border: "1px solid var(--rule)",
+      borderRadius: "var(--r-sm)",
+      color: "var(--ink)",
+      fontSize: 11.5,
+      padding: "4px 10px",
+      cursor: "pointer"
+    }
+  }, "Put ", s.short, " back")))), cooGone && orphans.length > 0 && /*#__PURE__*/React.createElement(Card, {
+    pad: 14,
+    style: {
+      marginBottom: 20,
+      borderColor: "var(--warn)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-soft)"
+    }
+  }, "The COO seat is off the chart, so ", orphans.length === 1 ? "one seat that reported into it reports" : `${orphans.length} seats that reported into it report`, " to the owner instead. That's the founder dependency going back up, not a reorganization.")), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 340,
       margin: "0 auto"
@@ -13556,7 +13865,7 @@ function TeamOrg({
       color: "var(--ink-mute)",
       marginLeft: 4
     }
-  }, fo.hold, " of ", fo.reads.length, " holding"))))), /*#__PURE__*/React.createElement("div", {
+  }, fo.hold, " of ", fo.reads.length, " holding"))))), !cooGone && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 1,
       height: 20,
@@ -13571,7 +13880,11 @@ function TeamOrg({
   }, /*#__PURE__*/React.createElement(OrgCard, {
     s: coo,
     go: go
-  })), /*#__PURE__*/React.createElement(SecLabel, {
+  }))), cooGone && /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 22
+    }
+  }), /*#__PURE__*/React.createElement(SecLabel, {
     icon: "team",
     right: `${direct.length} seats`
   }, "Reports to the owner"), /*#__PURE__*/React.createElement(G, {
@@ -13585,7 +13898,7 @@ function TeamOrg({
     key: s.id,
     s: s,
     go: go
-  }))), /*#__PURE__*/React.createElement(SecLabel, {
+  }))), !cooGone && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "team",
     right: `${underCoo.length} owned · ${moving.length} reporting to the owner until they move`
   }, "Owned by the COO, or moving to the COO"), /*#__PURE__*/React.createElement(G, {
@@ -13599,7 +13912,7 @@ function TeamOrg({
     key: s.id,
     s: s,
     go: go
-  }))), /*#__PURE__*/React.createElement(G, {
+  })))), /*#__PURE__*/React.createElement(G, {
     c: 2,
     name: "2h",
     gap: 16,

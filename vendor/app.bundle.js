@@ -118,12 +118,12 @@ const D = {
     help: "Share of customers approved once the cascade has run all three rails. Closing the last four points is worth about $14,000 a year."
   }, {
     k: "debt",
-    label: "Total owed",
-    value: "$167,376",
-    delta: -5.4,
+    label: "Still to pay",
+    value: "$87,377",
+    delta: -29.9,
     sub: "next $9,407 Nov 1",
     tone: "ink",
-    help: "Buyout note at $64,295 on the schedule, card at $23,081 as of 4 September, and the undated second obligation at $80,000, which has no written terms."
+    help: "Every dollar still leaving the bank on debt: $64,296 of remaining buyout payments, principal and interest, plus the $23,081 card balance. Principal alone is $76,414. There is one buyout note and the card, nothing else."
   }],
   funnel: [{
     label: "Sessions",
@@ -395,23 +395,29 @@ const D = {
   }],
   debt: [{
     n: "Buyout note",
-    v: 64295,
-    note: "7 of 9 payments left · October cleared",
+    v: 64296,
+    principal: 53333,
+    note: "7 of 9 payments left, October cleared. $53,333 of principal and $10,963 of interest still to run",
     payoff: "May 1, 2027",
     tone: "bad"
   }, {
     n: "Chase card",
     v: 23081,
-    note: "$46,700 limit · 49% used · $2,600 a month from the debt bucket · balance as of 4 September",
+    principal: 23081,
+    note: "$46,700 limit, 49% used, $2,600 a month from the debt bucket. Balance as of 4 September",
     payoff: "Jun 15, 2027",
     tone: "warn"
-  }, {
-    n: "Second obligation",
-    v: 80000,
-    note: "Undated, no written terms, no statement in hand",
-    payoff: "No date set",
-    tone: "mute"
   }],
+  // Two debts, one of each kind, and nothing else. An $80,000 undated obligation carried here
+  // through September was the buyout note counted twice. Removed 2 October on DB's confirmation.
+  debtNote: {
+    pay: 87377,
+    principal: 76414,
+    interest: 10963,
+    startPay: 124724,
+    startPrincipal: 124724,
+    why: "Two numbers, both real. Still to pay is every dollar that leaves the bank, so it carries the interest the buyout has left to run. Principal is what the balance sheet shows. The gap between them is $10,963 of interest across seven payments."
+  },
   // combined buyout and card balance at each month end, on the schedule and the card plan
   payoffPath: [{
     m: "Oct",
@@ -914,7 +920,7 @@ const D = {
     sku: "Love gummies",
     cat: "Gummies",
     status: "gated",
-    price: 69,
+    price: 89,
     cost: null,
     costHigh: null,
     basis: "actives $3.24, build unquoted",
@@ -1137,7 +1143,7 @@ const D = {
     cover: 42,
     lead: 21,
     st: "critical",
-    po: 6250,
+    po: 6260,
     inc: false,
     note: "Dry 10 November, short 758 for Q4. One run of 1,000 tins covers it with 242 spare"
   }, {
@@ -1206,7 +1212,27 @@ const D = {
     po: 0,
     inc: false,
     note: "Retired. No reorder. Pull it from the site when it hits zero"
+  }, {
+    sku: "Microdose capsules",
+    cat: "Capsules",
+    hand: 0,
+    vel: 0,
+    cover: 0,
+    lead: 42,
+    st: "critical",
+    po: 10000,
+    inc: false,
+    note: "Never produced. $10,000 funds the first run, and the tubes are the long pole at four to five weeks from China"
   }],
+  // The capsule trigger. Not a reorder, a launch, so it is funded rather than reordered.
+  trigger: {
+    sku: "Microdose capsules",
+    amount: 10000,
+    from: "Inventory bucket",
+    lead: "Five to six weeks. Four to five on the tubes from China, then a week and a half to two to turn the run around",
+    gate: "Two quotes outstanding on the tubes. The order can't be placed until one lands",
+    note: "DB set the figure on the 2 October call. At the current sweep the inventory bucket fills $6,576 a month, so the trigger is reached inside two months if nothing else draws on it."
+  },
   production: {
     runs: [],
     rates: [{
@@ -1321,12 +1347,12 @@ const D = {
     note: "Espresso, against a six to eight week box lead. Anything under lead time is a stockout waiting"
   }, {
     g: "Debt outstanding",
-    now: "$167K",
+    now: "$87.4K",
     target: "$0",
-    pct: 20,
+    pct: 30,
     tone: "warn",
     bench: 50,
-    note: "Down from $208,000. The buyout clears May 2027 on the schedule"
+    note: "Still to pay, principal and interest. Down from $124,724. The buyout clears May 2027 on the schedule"
   }],
   // ---------------------------------------------------------------- TEAM
   tasks: {
@@ -3160,7 +3186,7 @@ const D4 = {
     cover: 42,
     lead: 21,
     qty: 1000,
-    unit: 6.25,
+    unit: 6.26,
     supplier: "LA manufacturer",
     st: "late",
     note: "A fill, not a build. You already own the tins, so this is the manufacturer's charge to fill them."
@@ -3187,9 +3213,18 @@ const D4 = {
     cover: 109,
     lead: 21,
     qty: 0,
-    unit: 6.25,
+    unit: 6.26,
     supplier: "LA manufacturer",
     st: "ok"
+  }, {
+    sku: "Microdose capsules",
+    cover: 0,
+    lead: 42,
+    qty: 1000,
+    unit: 10.00,
+    supplier: "China, to identify",
+    st: "blocked",
+    note: "A launch, not a reorder. $10,000 funds the first run and two tube quotes are still outstanding."
   }],
   // ---------------------------------------------------------------- MOVEMENTS
   movements: [{
@@ -7310,22 +7345,23 @@ function Debt() {
       marginBottom: 24
     }
   }, /*#__PURE__*/React.createElement(KPI, {
-    label: "Total owed",
-    value: "$167,376",
+    label: "Still to pay",
+    value: "$87,377",
     tone: "ink",
-    delta: -5.4,
-    sub: "down from $208K at the start"
+    delta: -29.9,
+    sub: "principal and interest",
+    help: "Every dollar still leaving the bank. Principal alone is $76,414, and the $10,963 gap is interest the buyout has left to run."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Next payment",
-    value: "$9,481",
+    value: "$9,407",
     tone: "warn",
-    sub: "Oct 1 \xB7 from debt bucket"
+    sub: "Nov 1 \xB7 from debt bucket"
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Paid off by",
     value: "Jun 15, 2027",
     tone: "good",
     sub: "buyout May 1 \xB7 card Jun 15",
-    help: "The date the buyout note and the card both reach zero, on the payment schedule and the card plan. The second obligation has no date or terms, so it isn't in this."
+    help: "The date the buyout note and the card both reach zero, on the payment schedule and the card plan."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Card utilization",
     value: "49%",
@@ -7365,7 +7401,7 @@ function Debt() {
       color: T(d.tone)
     }
   }, fmt.usd(d.v))), /*#__PURE__*/React.createElement(Bar, {
-    pct: d.v / 167376 * 100,
+    pct: d.v / 87377 * 100,
     tone: d.tone
   }), /*#__PURE__*/React.createElement("p", {
     style: {
@@ -7435,9 +7471,54 @@ function Debt() {
       marginTop: 16
     }
   }, /*#__PURE__*/React.createElement(SecLabel, {
+    icon: "money",
+    right: "two numbers, both real"
+  }, "How to read what you owe"), /*#__PURE__*/React.createElement(G, {
+    c: 3,
+    gap: 12,
+    style: {
+      marginTop: 4,
+      marginBottom: 14
+    }
+  }, [["Still to pay", "$87,377", "Every dollar that leaves the bank. Buyout payments plus the card balance", "ink"], ["Principal outstanding", "$76,414", "What the balance sheet shows. $53,333 on the buyout, $23,081 on the card", "accent"], ["Interest still to run", "$10,963", "The gap between the two, across seven buyout payments", "warn"]].map(([l, v, d, t]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      background: "var(--surface-3)",
+      borderRadius: "var(--r-md)",
+      padding: "13px 15px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--ink-mute)",
+      marginBottom: 4
+    }
+  }, l), /*#__PURE__*/React.createElement("div", {
+    className: "mono",
+    style: {
+      fontSize: 19,
+      fontWeight: 650,
+      color: T(t),
+      marginBottom: 5
+    }
+  }, v), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: "var(--ink-soft)",
+      lineHeight: 1.45
+    }
+  }, d)))), /*#__PURE__*/React.createElement(Note, {
+    tone: "info",
+    icon: "i"
+  }, "Two debts and nothing else: the buyout note and the card. An $80,000 undated obligation carried on this page through September was the buyout counted a second time, and it came off on 2 October. Nothing was paid down to remove it, so the drop against the old figure is a correction rather than progress.")), /*#__PURE__*/React.createElement(Card, {
+    pad: 20,
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "clock",
     right: "buyout and card, month end",
-    help: "What's left on the buyout note and the card after each month's payments. The second obligation sits outside this until it has a date."
+    help: "What's left on the buyout note and the card after each month's payments."
   }, "Road to zero"), /*#__PURE__*/React.createElement(Line, {
     data: D.payoffPath,
     h: 180,
@@ -7450,7 +7531,7 @@ function Debt() {
       color: "var(--ink-mute)",
       marginTop: 12
     }
-  }, "$96,859 today on the two dated debts. The buyout clears May 1, 2027 and the card on June 15, 2027 at $2,600 a month. Anything extra onto the card pulls that date in.")));
+  }, "$87,377 still to pay across both. The buyout clears May 1, 2027 and the card on June 15, 2027 at $2,600 a month. Anything extra onto the card pulls that date in.")));
 }
 
 /* ============================== RAILS ============================== */
@@ -13460,6 +13541,68 @@ function Costs() {
     tone: "warn",
     icon: "!"
   }, COST.love.note), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 26
+    }
+  }), /*#__PURE__*/React.createElement(SecLabel, {
+    help: "A launch, not a reorder, so it gets funded rather than reordered."
+  }, "The capsule trigger"), /*#__PURE__*/React.createElement(G, {
+    c: 2,
+    gap: 14,
+    style: {
+      marginBottom: 14
+    },
+    name: "two"
+  }, /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 10,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "mono",
+    style: {
+      fontSize: 26,
+      fontWeight: 700,
+      color: "var(--violet)"
+    }
+  }, "$10,000"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--ink-mute)"
+    }
+  }, "funds the first run")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--ink-soft)",
+      lineHeight: 1.55
+    }
+  }, "Paid from the inventory bucket, which fills about $6,576 a month at the current sweep. The trigger is reached inside two months if nothing else draws on it.")), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-mute)",
+      marginBottom: 9
+    }
+  }, "What has to happen first"), /*#__PURE__*/React.createElement("ul", {
+    style: {
+      listStyle: "none",
+      display: "grid",
+      gap: 8
+    }
+  }, [["Two tube quotes land", "Neither has come back. The order can't be placed without one"], ["Tubes ship from China", "Four to five weeks. The long pole on the whole launch"], ["Run turns around", "A week and a half to two once the tubes arrive"]].map(([a, b]) => /*#__PURE__*/React.createElement("li", {
+    key: a,
+    style: {
+      fontSize: 12.5
+    }
+  }, /*#__PURE__*/React.createElement("b", null, a, "."), " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--ink-mute)"
+    }
+  }, b)))))), /*#__PURE__*/React.createElement(Note, {
+    tone: "warn",
+    icon: "!"
+  }, "Five to six weeks end to end, so a trigger hit in November lands stock in late December or January. Capsules aren't a Q4 product on this timeline. The build cost of $9.67 to $10.37 a bottle is still a quote, not a run."), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 26
     }

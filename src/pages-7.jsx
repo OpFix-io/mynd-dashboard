@@ -134,6 +134,35 @@ function Costs() {
       </Card>
       <Note tone="warn" icon="!">{COST.love.note}</Note>
       <div style={{ height:26 }} />
+      <SecLabel help="A launch, not a reorder, so it gets funded rather than reordered.">The capsule trigger</SecLabel>
+      <G c={2} gap={14} style={{ marginBottom:14 }} name="two">
+        <Card>
+          <div style={{ display:"flex", alignItems:"baseline", gap:10, marginBottom:8 }}>
+            <span className="mono" style={{ fontSize:26, fontWeight:700, color:"var(--violet)" }}>$10,000</span>
+            <span style={{ fontSize:12, color:"var(--ink-mute)" }}>funds the first run</span>
+          </div>
+          <p style={{ fontSize:12.5, color:"var(--ink-soft)", lineHeight:1.55 }}>
+            Paid from the inventory bucket, which fills about $6,576 a month at the current sweep. The trigger is
+            reached inside two months if nothing else draws on it.
+          </p>
+        </Card>
+        <Card>
+          <div style={{ fontSize:11.5, color:"var(--ink-mute)", marginBottom:9 }}>What has to happen first</div>
+          <ul style={{ listStyle:"none", display:"grid", gap:8 }}>
+            {[["Two tube quotes land","Neither has come back. The order can't be placed without one"],
+              ["Tubes ship from China","Four to five weeks. The long pole on the whole launch"],
+              ["Run turns around","A week and a half to two once the tubes arrive"]].map(([a,b])=>(
+              <li key={a} style={{ fontSize:12.5 }}>
+                <b>{a}.</b> <span style={{ color:"var(--ink-mute)" }}>{b}</span></li>
+            ))}
+          </ul>
+        </Card>
+      </G>
+      <Note tone="warn" icon="!">
+        Five to six weeks end to end, so a trigger hit in November lands stock in late December or January. Capsules
+        aren't a Q4 product on this timeline. The build cost of $9.67 to $10.37 a bottle is still a quote, not a run.
+      </Note>
+      <div style={{ height:26 }} />
       <SecLabel>What the fold-in found</SecLabel>
       <Card pad={0} style={{ marginBottom:14 }}>
         <div className="scroll-x"><table className="tbl">

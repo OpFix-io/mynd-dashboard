@@ -47,10 +47,11 @@ const D4 = {
   // cost comes from D.inventory[].po so both tabs agree; qty = cost / unit
   reorders: [
     { sku:"Espresso dark chocolate",  cover:41, lead:56, qty:2000, unit:0.78, supplier:"Overseas packaging", st:"late", note:"Boxes, not bars. Short 101 for Q4 and the lead is six to eight weeks." },
-    { sku:"Strawberry Mango gummies", cover:42, lead:21, qty:1000, unit:6.25, supplier:"LA manufacturer", st:"late", note:"A fill, not a build. You already own the tins, so this is the manufacturer's charge to fill them." },
+    { sku:"Strawberry Mango gummies", cover:42, lead:21, qty:1000, unit:6.26, supplier:"LA manufacturer", st:"late", note:"A fill, not a build. You already own the tins, so this is the manufacturer's charge to fill them." },
     { sku:"Mint, Toffee and Dubai boxes", cover:63, lead:56, qty:6000, unit:0.78, supplier:"Overseas packaging", st:"soon", note:"Covered on a normal Q4. This is promo insurance, not a shortfall." },
     { sku:"Love gummies",             cover:3,  lead:21, qty:null, unit:null, supplier:"LA manufacturer", st:"blocked", note:"Reorder gated on cash flow, and a 12-piece cardbox run has never been quoted." },
-    { sku:"Blue Raspberry gummies",   cover:109, lead:21, qty:0,   unit:6.25, supplier:"LA manufacturer", st:"ok" },
+    { sku:"Blue Raspberry gummies",   cover:109, lead:21, qty:0,   unit:6.26, supplier:"LA manufacturer", st:"ok" },
+    { sku:"Microdose capsules",       cover:0,  lead:42, qty:1000, unit:10.00, supplier:"China, to identify", st:"blocked", note:"A launch, not a reorder. $10,000 funds the first run and two tube quotes are still outstanding." },
   ],
 
   // ---------------------------------------------------------------- MOVEMENTS

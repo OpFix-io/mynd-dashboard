@@ -28,7 +28,7 @@ const D = {
     { k:"be",    label:"Break-even",      value:"$39,825", delta:0, sub:"running $10,064 above it", tone:"good", help:"Fixed overhead of $16,973 plus the $9,481 debt payment, divided by a 66.43% contribution margin. No owner salary, because there isn't one." },
     { k:"ncac",  label:"Cost per new customer", value:"-", sub:"no ad spend to measure", tone:"mute", help:"Ad spend has been zero since August, so there's no acquisition cost to divide. aMER and ROAS are blank for the same reason." },
     { k:"appr",  label:"Approval rate",   value:"95.88%", delta:0, sub:"target 99%", tone:"warn", help:"Share of customers approved once the cascade has run all three rails. Closing the last four points is worth about $14,000 a year." },
-    { k:"debt",  label:"Total owed",      value:"$167,376", delta:-5.4, sub:"next $9,407 Nov 1", tone:"ink", help:"Buyout note at $64,295 on the schedule, card at $23,081 as of 4 September, and the undated second obligation at $80,000, which has no written terms." },
+    { k:"debt",  label:"Still to pay",    value:"$87,377", delta:-29.9, sub:"next $9,407 Nov 1", tone:"ink", help:"Every dollar still leaving the bank on debt: $64,296 of remaining buyout payments, principal and interest, plus the $23,081 card balance. Principal alone is $76,414. There is one buyout note and the card, nothing else." },
   ],
 
   funnel: [
@@ -105,10 +105,16 @@ const D = {
     { l:"Running above it", v:"$10,064", d:"Against $49,889 collected in the 30 days to 5 September" },
   ],
   debt: [
-    { n:"Buyout note", v:64295, note:"7 of 9 payments left · October cleared", payoff:"May 1, 2027", tone:"bad" },
-    { n:"Chase card",  v:23081,  note:"$46,700 limit · 49% used · $2,600 a month from the debt bucket · balance as of 4 September", payoff:"Jun 15, 2027", tone:"warn" },
-    { n:"Second obligation", v:80000, note:"Undated, no written terms, no statement in hand", payoff:"No date set", tone:"mute" },
+    { n:"Buyout note", v:64296, principal:53333, note:"7 of 9 payments left, October cleared. $53,333 of principal and $10,963 of interest still to run", payoff:"May 1, 2027", tone:"bad" },
+    { n:"Chase card",  v:23081, principal:23081, note:"$46,700 limit, 49% used, $2,600 a month from the debt bucket. Balance as of 4 September", payoff:"Jun 15, 2027", tone:"warn" },
   ],
+  // Two debts, one of each kind, and nothing else. An $80,000 undated obligation carried here
+  // through September was the buyout note counted twice. Removed 2 October on DB's confirmation.
+  debtNote: {
+    pay: 87377, principal: 76414, interest: 10963,
+    startPay: 124724, startPrincipal: 124724,
+    why: "Two numbers, both real. Still to pay is every dollar that leaves the bank, so it carries the interest the buyout has left to run. Principal is what the balance sheet shows. The gap between them is $10,963 of interest across seven payments.",
+  },
   // combined buyout and card balance at each month end, on the schedule and the card plan
   payoffPath: [
     { m:"Oct", v:84776 },{ m:"Nov", v:72770 },{ m:"Dec", v:60837 },{ m:"Jan", v:48977 },
@@ -189,7 +195,7 @@ const D = {
     { sku:"Mint milk chocolate",      cat:"Chocolate", status:"live", price:69, cost:11.65, costHigh:11.65, basis:"supplier buildup, 8 pieces", margin:83.1, units:143, rev:null, trend:[104,114,124,134,143] },
     { sku:"Dubai milk chocolate",     cat:"Chocolate", status:"live", price:69, cost:11.65, costHigh:11.65, basis:"supplier buildup, 8 pieces", margin:83.1, units:135, rev:null, trend:[61,78,97,116,135] },
     { sku:"Wild Cherry gummies",      cat:"Gummies", status:"retired", price:69, cost:8.16, costHigh:8.64, basis:"supplier buildup", margin:88.2, units:100, rev:null, trend:[62,72,82,92,100] },
-    { sku:"Love gummies",             cat:"Gummies", status:"gated", price:69, cost:null, costHigh:null, basis:"actives $3.24, build unquoted", margin:null, units:55, rev:null, trend:[14,24,35,45,55] },
+    { sku:"Love gummies",             cat:"Gummies", status:"gated", price:89, cost:null, costHigh:null, basis:"actives $3.24, build unquoted", margin:null, units:55, rev:null, trend:[14,24,35,45,55] },
     { sku:"Sea Salt dark chocolate",  cat:"Chocolate", status:"waiting", price:69, cost:11.65, costHigh:11.65, basis:"supplier buildup, 8 pieces", margin:83.1, units:0, rev:null, trend:[0,0,0,0,0] },
     { sku:"Microdose capsules",       cat:"Capsules", status:"never made", price:null, cost:9.67, costHigh:10.37, basis:"supplier buildup", margin:null, units:0, rev:null, trend:[0,0,0,0,0] },
   ],
@@ -245,14 +251,22 @@ const D = {
   // ---------------------------------------------------------------- OPS
   inventory: [
     { sku:"Espresso dark chocolate",  cat:"Chocolate", hand:332, vel:246, cover:41,  lead:56, st:"critical", po:1560,  inc:false, note:"Short 101 for Q4. Six to eight weeks on boxes, so the order goes this week" },
-    { sku:"Strawberry Mango gummies", cat:"Gummies",   hand:452, vel:319, cover:42,  lead:21, st:"critical", po:6250,  inc:false, note:"Dry 10 November, short 758 for Q4. One run of 1,000 tins covers it with 242 spare" },
+    { sku:"Strawberry Mango gummies", cat:"Gummies",   hand:452, vel:319, cover:42,  lead:21, st:"critical", po:6260,  inc:false, note:"Dry 10 November, short 758 for Q4. One run of 1,000 tins covers it with 242 spare" },
     { sku:"Blue Raspberry gummies",   cat:"Gummies",   hand:751, vel:207, cover:109, lead:21, st:"warning",  po:0, inc:false, note:"Short 34 across Q4. Inside the noise, but no buffer into January" },
     { sku:"Dubai milk chocolate",     cat:"Chocolate", hand:216, vel:135, cover:48,  lead:56, st:"warning",  po:1560, inc:false, note:"Covered by 204 on a normal quarter. 500 boxes behind it" },
     { sku:"Mint milk chocolate",      cat:"Chocolate", hand:298, vel:143, cover:63,  lead:56, st:"healthy",  po:1560, inc:false, note:"Covered by 256. 500 boxes behind it" },
     { sku:"Toffee milk chocolate",    cat:"Chocolate", hand:345, vel:148, cover:70,  lead:56, st:"healthy",  po:1560, inc:false, note:"Covered by 284. 500 boxes behind it" },
     { sku:"Love gummies",             cat:"Gummies",   hand:6,   vel:55,  cover:3,   lead:21, st:"warning",  po:0, inc:false, note:"Selling down. Reorder gated on cash flow, and the 12-piece run has never been quoted" },
     { sku:"Wild Cherry gummies",      cat:"Gummies",   hand:40,  vel:100, cover:12,  lead:0,  st:"over",     po:0, inc:false, note:"Retired. No reorder. Pull it from the site when it hits zero" },
+    { sku:"Microdose capsules",       cat:"Capsules",  hand:0,   vel:0,   cover:0,   lead:42, st:"critical", po:10000, inc:false, note:"Never produced. $10,000 funds the first run, and the tubes are the long pole at four to five weeks from China" },
   ],
+  // The capsule trigger. Not a reorder, a launch, so it is funded rather than reordered.
+  trigger: {
+    sku:"Microdose capsules", amount:10000, from:"Inventory bucket",
+    lead:"Five to six weeks. Four to five on the tubes from China, then a week and a half to two to turn the run around",
+    gate:"Two quotes outstanding on the tubes. The order can't be placed until one lands",
+    note:"DB set the figure on the 2 October call. At the current sweep the inventory bucket fills $6,576 a month, so the trigger is reached inside two months if nothing else draws on it.",
+  },
   production: {
     runs: [],
     rates: [
@@ -278,7 +292,7 @@ const D = {
     { g:"Billing rate", now:"78.9%", target:"90%", pct:88, tone:"warn", bench:85, note:"206 of 261 rebill attempts cleared. The second retry recovers nothing" },
     { g:"Subscription attach", now:"10.4%", target:"25%", pct:42, tone:"bad", bench:30, note:"94 of 905 approved customers. The retention curve is being measured on a tenth of the base" },
     { g:"Days of cover, worst live SKU", now:"41d", target:"56d", pct:73, tone:"bad", bench:60, note:"Espresso, against a six to eight week box lead. Anything under lead time is a stockout waiting" },
-    { g:"Debt outstanding", now:"$167K", target:"$0", pct:20, tone:"warn", bench:50, note:"Down from $208,000. The buyout clears May 2027 on the schedule" },
+    { g:"Debt outstanding", now:"$87.4K", target:"$0", pct:30, tone:"warn", bench:50, note:"Still to pay, principal and interest. Down from $124,724. The buyout clears May 2027 on the schedule" },
   ],
 
   // ---------------------------------------------------------------- TEAM

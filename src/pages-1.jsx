@@ -452,9 +452,9 @@ function Debt() {
     <div className="page-in">
       <PageHead title="Debt and obligations" sub="What's owed, to whom, and when it lands." />
       <G c={4} style={{ marginBottom:24 }}>
-        <KPI label="Total owed" value="$167,376" tone="ink" delta={-5.4} sub="down from $208K at the start" />
-        <KPI label="Next payment" value="$9,481" tone="warn" sub="Oct 1 · from debt bucket" />
-        <KPI label="Paid off by" value="Jun 15, 2027" tone="good" sub="buyout May 1 · card Jun 15" help="The date the buyout note and the card both reach zero, on the payment schedule and the card plan. The second obligation has no date or terms, so it isn't in this." />
+        <KPI label="Still to pay" value="$87,377" tone="ink" delta={-29.9} sub="principal and interest" help="Every dollar still leaving the bank. Principal alone is $76,414, and the $10,963 gap is interest the buyout has left to run." />
+        <KPI label="Next payment" value="$9,407" tone="warn" sub="Nov 1 · from debt bucket" />
+        <KPI label="Paid off by" value="Jun 15, 2027" tone="good" sub="buyout May 1 · card Jun 15" help="The date the buyout note and the card both reach zero, on the payment schedule and the card plan." />
         <KPI label="Card utilization" value="49%" tone="warn" sub="$23,081 of $46,700" />
       </G>
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1fr 1.3fr" }}>
@@ -466,7 +466,7 @@ function Debt() {
                 <span style={{ fontSize:13 }}>{d.n}</span>
                 <span className="mono" style={{ fontSize:14, fontWeight:600, color:T(d.tone) }}>{fmt.usd(d.v)}</span>
               </div>
-              <Bar pct={(d.v/167376)*100} tone={d.tone} />
+              <Bar pct={(d.v/87377)*100} tone={d.tone} />
               <p style={{ fontSize:10.5, color:"var(--ink-mute)", marginTop:5 }}>{d.note}</p>
               <p style={{ fontSize:11, marginTop:3 }}><span style={{ color:"var(--ink-mute)" }}>Paid off by </span>
                 <b className="mono" style={{ color:d.payoff === "No date set" ? "var(--ink-mute)" : "var(--ink)" }}>{d.payoff}</b></p>
@@ -488,11 +488,30 @@ function Debt() {
         </Card>
       </G>
       <Card pad={20} style={{ marginTop:16 }}>
+        <SecLabel icon="money" right="two numbers, both real">How to read what you owe</SecLabel>
+        <G c={3} gap={12} style={{ marginTop:4, marginBottom:14 }}>
+          {[["Still to pay","$87,377","Every dollar that leaves the bank. Buyout payments plus the card balance","ink"],
+            ["Principal outstanding","$76,414","What the balance sheet shows. $53,333 on the buyout, $23,081 on the card","accent"],
+            ["Interest still to run","$10,963","The gap between the two, across seven buyout payments","warn"]].map(([l,v,d,t])=>(
+            <div key={l} style={{ background:"var(--surface-3)", borderRadius:"var(--r-md)", padding:"13px 15px" }}>
+              <div style={{ fontSize:10.5, color:"var(--ink-mute)", marginBottom:4 }}>{l}</div>
+              <div className="mono" style={{ fontSize:19, fontWeight:650, color:T(t), marginBottom:5 }}>{v}</div>
+              <p style={{ fontSize:11, color:"var(--ink-soft)", lineHeight:1.45 }}>{d}</p>
+            </div>
+          ))}
+        </G>
+        <Note tone="info" icon="i">
+          Two debts and nothing else: the buyout note and the card. An $80,000 undated obligation carried on this page
+          through September was the buyout counted a second time, and it came off on 2 October. Nothing was paid down
+          to remove it, so the drop against the old figure is a correction rather than progress.
+        </Note>
+      </Card>
+      <Card pad={20} style={{ marginTop:16 }}>
         <SecLabel icon="clock" right="buyout and card, month end"
-          help="What's left on the buyout note and the card after each month's payments. The second obligation sits outside this until it has a date.">Road to zero</SecLabel>
+          help="What's left on the buyout note and the card after each month's payments.">Road to zero</SecLabel>
         <Line data={D.payoffPath} h={180} tone="good" vf={fmt.k} yMin={0} />
         <p style={{ fontSize:11.5, color:"var(--ink-mute)", marginTop:12 }}>
-          $96,859 today on the two dated debts. The buyout clears May 1, 2027 and the card on June 15, 2027 at $2,600 a month.
+          $87,377 still to pay across both. The buyout clears May 1, 2027 and the card on June 15, 2027 at $2,600 a month.
           Anything extra onto the card pulls that date in.
         </p>
       </Card>

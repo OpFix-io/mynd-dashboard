@@ -8,6 +8,64 @@ const ScoreStore = { mode:"sample", live:{}, focus:null, viewAs:"owner", clears:
 try { const raw = localStorage.getItem(SCORE_KEY); if (raw) ScoreStore.live = JSON.parse(raw) || {}; } catch (e) {}
 
 function scoreEmit() { ScoreStore.subs.forEach(f => f()); }
+
+/* ------------------------------------------------------------ seat store
+   Who sits in each seat. Separate from the score log because roles change for
+   reasons that have nothing to do with a number, and a seat can be open. */
+const SEAT_KEY = "mynd.seats.v1";
+const SeatStore = { who:{}, subs:new Set() };
+try { const raw = localStorage.getItem(SEAT_KEY); if (raw) SeatStore.who = JSON.parse(raw) || {}; } catch (e) {}
+function seatEmit() { SeatStore.subs.forEach(f => f()); }
+function useSeats() {
+  const [, force] = useState(0);
+  useEffect(() => { const f = () => force(x => x + 1); SeatStore.subs.add(f); return () => SeatStore.subs.delete(f); }, []);
+  return SeatStore;
+}
+function seatWho(s) {
+  const v = SeatStore.who[s.id];
+  if (v === undefined) return { name:s.who, open:!!s.open, edited:false };
+  const t = String(v).trim();
+  return { name: t === "" ? "Open" : t, open: t === "" || t.toLowerCase() === "open", edited:true };
+}
+function seatSetWho(id, v) {
+  SeatStore.who = { ...SeatStore.who, [id]: v };
+  try { localStorage.setItem(SEAT_KEY, JSON.stringify(SeatStore.who)); } catch (e) {}
+  seatEmit();
+}
+function seatResetWho() {
+  SeatStore.who = {};
+  try { localStorage.removeItem(SEAT_KEY); } catch (e) {}
+  seatEmit();
+}
+// An editable name. Click to type, enter or blur to save, escape to cancel.
+function SeatName({ s, size = 11 }) {
+  useSeats();
+  const w = seatWho(s);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(w.name);
+  if (s.relationship) return <span style={{ fontSize:size, color:"var(--ink-mute)" }}>{w.name}</span>;
+  if (editing) return (
+    <input autoFocus value={draft}
+      onClick={e => e.stopPropagation()}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { seatSetWho(s.id, draft); setEditing(false); }}
+      onKeyDown={e => {
+        if (e.key === "Enter") { seatSetWho(s.id, draft); setEditing(false); }
+        if (e.key === "Escape") { setDraft(w.name); setEditing(false); }
+      }}
+      placeholder="Open"
+      style={{ width:"100%", background:"var(--surface-3)", border:"1px solid var(--accent)",
+               borderRadius:4, color:"var(--ink)", fontSize:size, padding:"2px 5px", outline:"none" }} />
+  );
+  return (
+    <span onClick={e => { e.stopPropagation(); setDraft(w.open ? "" : w.name); setEditing(true); }}
+      title="Click to change who holds this seat"
+      style={{ fontSize:size, cursor:"text", borderBottom:"1px dashed var(--rule)",
+               color: w.open ? "var(--warn)" : "var(--ink-mute)", fontStyle: w.open ? "italic" : "normal" }}>
+      {w.open ? "Open, nobody in the seat" : w.name}
+    </span>
+  );
+}
 function useScore() {
   const [, force] = useState(0);
   useEffect(() => { const f = () => force(x => x + 1); ScoreStore.subs.add(f); return () => ScoreStore.subs.delete(f); }, []);
@@ -422,15 +480,17 @@ function ScoreLog() {
 
 /* ============================== ORG CHART ============================== */
 function OrgCard({ s, go }) {
+  useSeats();
   const x = seatRead(s), p = x.primary;
   return (
     <Card pad={16} hover onClick={() => { scoreSet("viewAs", "owner"); scoreSet("focus", s.id); go("scorecards"); }}
       style={{ cursor:"pointer", display:"flex", flexDirection:"column", gap:8, borderStyle:s.relationship ? "dashed" : undefined }}>
       <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-        <Avatar name={s.who} size={30} tone={s.relationship ? "mute" : "accent"} />
-        <div style={{ minWidth:0 }}>
+        <Avatar name={seatWho(s).open ? "?" : seatWho(s).name} size={30}
+          tone={s.relationship ? "mute" : seatWho(s).open ? "warn" : "accent"} />
+        <div style={{ minWidth:0, flex:1 }}>
           <div style={{ fontSize:13.5, fontWeight:600 }}>{s.short}</div>
-          <div style={{ fontSize:11, color:"var(--ink-mute)" }}>{s.who}</div>
+          <SeatName s={s} />
         </div>
       </div>
       <p style={{ fontSize:11.5, color:"var(--ink-soft)", lineHeight:1.5 }}>{s.line}</p>
@@ -442,6 +502,7 @@ function OrgCard({ s, go }) {
         {x.reads.map(r => <Dot key={r.m.id} st={r.st} />)}
         <span style={{ fontSize:10.5, color:"var(--ink-mute)", marginLeft:4 }}>{x.hold} of {x.reads.length} holding</span>
       </div>
+      {seatWho(s).open && <Badge tone="warn" style={{ alignSelf:"flex-start" }}>Seat open</Badge>}
       {s.moving && <Badge tone="info" style={{ alignSelf:"flex-start" }}>Moving to the COO</Badge>}
       {s.relationship && <Badge tone="mute" style={{ alignSelf:"flex-start" }}>A relationship, not a person</Badge>}
     </Card>
@@ -450,6 +511,7 @@ function OrgCard({ s, go }) {
 
 function TeamOrg({ go }) {
   const S = useScore();
+  const seats = useSeats();
   const owner = seatById("founder"), coo = seatById("coo");
   const direct = SEATS.filter(s => s.reports === "founder" && s.id !== "coo" && !s.moving);
   const underCoo = SEATS.filter(s => s.reports === "coo");
@@ -459,8 +521,16 @@ function TeamOrg({ go }) {
   return (
     <div className="page-in">
       <PageHead title="Org chart" sub="Who does what, who it reports to, and how each seat is scoring across its metrics."
-        meta="Nine seats, each with a written role document. Click any seat for its scorecard."
-        right={<ModeSwitch />} />
+        meta="Nine seats, each with a written role document. Click a name to change who holds the seat, or clear it to mark the seat open. Click anywhere else on a card for its scorecard."
+        right={<span style={{ display:"inline-flex", gap:10, alignItems:"center" }}>
+          {Object.keys(seats.who).length > 0 &&
+            <button onClick={seatResetWho}
+              style={{ background:"none", border:"1px solid var(--rule)", borderRadius:"var(--r-sm)",
+                       color:"var(--ink-mute)", fontSize:11, padding:"5px 10px", cursor:"pointer" }}>
+              Reset names
+            </button>}
+          <ModeSwitch />
+        </span>} />
 
       <div style={{ maxWidth:340, margin:"0 auto" }}>
         <div className="sec-label" style={{ justifyContent:"center" }}>Owner</div>
@@ -468,7 +538,7 @@ function TeamOrg({ go }) {
           style={{ cursor:"pointer", borderColor:"var(--accent)", textAlign:"center" }}>
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
             <Avatar name={D.meta.user} size={40} />
-            <div style={{ fontSize:15, fontWeight:600 }}>{D.meta.user}</div>
+            <div style={{ fontSize:15, fontWeight:600 }}><SeatName s={{ ...owner, who:D.meta.user }} size={15} /></div>
             <div style={{ fontSize:11.5, color:"var(--accent)" }}>Founder and Owner</div>
             <div style={{ fontSize:11.5, color:"var(--ink-soft)" }}>{fr.m.name}: <b className="mono" style={{ color:T(ST_TONE[fr.st] === "mute" ? "ink" : ST_TONE[fr.st]) }}>{fmtM(fr.m, fr.latest)}</b>, target under 5</div>
             <div style={{ display:"flex", alignItems:"center", gap:5 }}>{fo.reads.map(r => <Dot key={r.m.id} st={r.st} />)}

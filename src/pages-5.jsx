@@ -330,11 +330,109 @@ function InvMovements() {
   );
 }
 
+// Redline alerts. Thresholds are editable and persist in the browser, the same way the
+// score log does, because the number DB has to set is the whole point of the page.
+const RED_KEY = "mynd.redline.v1";
+const RedStore = { v:{}, subs:new Set() };
+try { const raw = localStorage.getItem(RED_KEY); if (raw) RedStore.v = JSON.parse(raw) || {}; } catch (e) {}
+function useRed() {
+  const [, force] = useState(0);
+  useEffect(() => { const f = () => force(x => x + 1); RedStore.subs.add(f); return () => RedStore.subs.delete(f); }, []);
+  return RedStore;
+}
+function redOf(r) { const v = RedStore.v[r.sku]; return v === undefined || v === "" ? r.redline : Number(v); }
+function redSet(sku, v) {
+  RedStore.v = { ...RedStore.v, [sku]: v };
+  try { localStorage.setItem(RED_KEY, JSON.stringify(RedStore.v)); } catch (e) {}
+  RedStore.subs.forEach(f => f());
+}
+function redReset() {
+  RedStore.v = {};
+  try { localStorage.removeItem(RED_KEY); } catch (e) {}
+  RedStore.subs.forEach(f => f());
+}
+function RedInput({ r }) {
+  useRed();
+  const [draft, setDraft] = useState(String(redOf(r)));
+  useEffect(() => { setDraft(String(redOf(r))); }, [RedStore.v[r.sku]]);
+  return (
+    <input value={draft} inputMode="numeric"
+      onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, ""))}
+      onBlur={() => redSet(r.sku, draft)}
+      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+      className="mono"
+      style={{ width:72, textAlign:"right", background:"var(--surface-3)", border:"1px solid var(--rule)",
+               borderRadius:4, color:"var(--ink)", fontSize:12.5, padding:"3px 7px", outline:"none" }} />
+  );
+}
+
+function InvAlerts() {
+  const R = useRed();
+  const A = D.alerts;
+  const rows = A.rows.map(r => {
+    const red = redOf(r);
+    const st = r.hand < red ? "breached" : r.hand === red ? "at" : "clear";
+    return { ...r, red, st, gap: r.hand - red };
+  });
+  const breached = rows.filter(r => r.st !== "clear").length;
+  const cell = { textAlign:"right" };
+  return (
+    <div className="page-in">
+      <PageHead title="Redline alerts" sub="The reorder point on every SKU, where the alert goes, and who sends the supplier message."
+        meta="Type over any redline to change it. Changes save in this browser."
+        right={Object.keys(R.v).length > 0 &&
+          <button onClick={redReset}
+            style={{ background:"none", border:"1px solid var(--rule)", borderRadius:"var(--r-sm)",
+                     color:"var(--ink-mute)", fontSize:11, padding:"5px 10px", cursor:"pointer" }}>Reset redlines</button>} />
+      <G c={4} style={{ marginBottom:20 }}>
+        <KPI label="Alerts firing" value={A.live ? String(breached) : "None"} tone={A.live ? "bad" : "mute"}
+          sub={A.live ? "of 6 SKUs" : "nothing is wired yet"} help="Nothing fires until the threshold is set in the warehouse system. Today every field there reads zero." />
+        <KPI label="At or past the redline" value={String(breached)} tone={breached ? "bad" : "good"} sub="of 6 live SKUs" />
+        <KPI label="Where it goes" value="Email and Slack" tone="accent" sub="to DB, tagged" />
+        <KPI label="Supplier message" value="Drafted" tone="warn" sub="reviewed before it sends"
+          help="DB asked for the supplier email to fire off the alert and for someone else to manage the thread. Drafting it and holding it for review is the safer version." />
+      </G>
+      <Card pad={0} style={{ marginBottom:16 }}>
+        <div className="scroll-x"><table className="tbl">
+          <thead><tr><th>Product</th><th style={cell}>On hand</th><th style={cell}>Redline</th><th style={cell}>Gap</th>
+            <th style={cell}>Lead</th><th>What it triggers</th><th>To</th><th>Status</th></tr></thead>
+          <tbody>{rows.map(r => (
+            <tr key={r.sku}>
+              <td style={{ fontWeight:600 }}>{r.sku}</td>
+              <td className="num" style={cell}>{fmt.n(r.hand)}</td>
+              <td style={cell}><RedInput r={r} /></td>
+              <td className="num" style={{ ...cell, color: r.gap < 0 ? "var(--bad)" : "var(--good)" }}>
+                {r.gap > 0 ? "+" : ""}{fmt.n(r.gap)}</td>
+              <td className="num" style={cell}>{r.lead}d</td>
+              <td style={{ fontSize:12, color:"var(--ink-soft)" }}>{r.what}</td>
+              <td style={{ fontSize:11.5, color:"var(--ink-mute)" }}>{r.to}</td>
+              <td>{r.st === "breached" ? <Badge tone="bad" solid>Order now</Badge>
+                 : r.st === "at" ? <Badge tone="warn">At the line</Badge>
+                 : <Badge tone="good">Clear</Badge>}</td>
+            </tr>))}</tbody>
+        </table></div>
+      </Card>
+      <SecLabel icon="alert">Where an alert goes</SecLabel>
+      <G c={4} gap={12} style={{ marginBottom:16 }}>
+        {A.channels.map(c => (
+          <Card key={c.n} pad={15}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:6 }}>
+              <span style={{ fontSize:12.5, fontWeight:600 }}>{c.n}</span>
+              <Badge tone={c.on ? "good" : "mute"}>{c.on ? "On" : "Off"}</Badge>
+            </div>
+            <p style={{ fontSize:11.5, color:"var(--ink-soft)", lineHeight:1.5 }}>{c.note}</p>
+          </Card>))}
+      </G>
+      <Note tone="warn" icon="!">{A.note}</Note>
+    </div>
+  );
+}
+
 const SUBVIEWS = {
   boardroom: [null, BoardFinancials, BoardInsights, BoardHealth],
   cash:      [null, CashForecast, CashTransactions],
   revenue:   [null, RevenueChannels],
-  inventory: [null, InvReorders, InvMovements],
+  inventory: [null, InvReorders, InvAlerts, InvMovements],
   costs:       [null, CostRates, CostFormulation, CostLadder, CostLog],
   production:  [null, ProdPurchases, ProdRecon],
   suppliers:   [null, SupLedger],

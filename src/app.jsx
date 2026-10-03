@@ -48,7 +48,7 @@ const SUBTABS = {
   boardroom: ["Boardroom","Financials","Insights","System Health"],
   cash: ["Cash","Forecast","Transactions"],
   revenue: ["Overview","By Channel"],
-  inventory: ["Inventory","Reorders","Movements"],
+  inventory: ["Inventory","Reorders","Alerts","Movements"],
   costs: ["Unit cost","Rates","Formulation","Volume ladder","Change log"],
   production: ["Runs","Purchases","Reconciliation"],
   suppliers: ["Suppliers","Ledger"],

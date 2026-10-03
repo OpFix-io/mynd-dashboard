@@ -240,6 +240,27 @@ dashboard. One go-forward asset.
 - **Sub-tab crash fixed.** Moving from a page with five sub-tabs to one with three looked
   up a view that wasn't there and blanked the dashboard. The lookup is clamped.
 
+## Thirteenth pass, the call of 2 October
+
+- **Org chart is editable.** Click a name to change who holds a seat, or clear it to mark the
+  seat open. Edits persist in the browser under `mynd.seats.v1`, separate from the score log
+  because roles change for reasons that have nothing to do with a number. A reset restores the
+  defaults. Clicking anywhere else on a card still routes to the scorecard.
+- **The COO seat is open.** Camila is out of the data entirely.
+- **Redline alerts added** under Inventory. Reorder point per SKU, the gap against stock on
+  hand, what the alert triggers and who it goes to. Thresholds are typed over and persist under
+  `mynd.redline.v1`. Four of six live SKUs are at or past their redline today.
+  Nothing fires yet, and the page says why: the threshold field in the warehouse system still
+  reads zero on every SKU, and that's the system of record.
+- **Capsules added** with the $10,000 production trigger, on Inventory, Reorders and Costs.
+  Five to six weeks end to end once a tube quote lands, so not a Q4 product.
+- **Debt corrected.** The $80,000 undated second obligation was the buyout counted twice and
+  it's gone. Two debts now, explained as three numbers: $87,377 still to pay, $76,414 of
+  principal, $10,963 of interest. The start figure moves from $208,000 to $124,724 for the
+  same reason, and the page says that's a correction rather than paydown.
+- **Love is $89** from 2 October.
+- **Sub-tab crash fixed** (see the twelfth pass), reachable because Costs has five sub-tabs.
+
 ## Known gaps
 
 - Agents are scoped, not built. Outside the current engagement

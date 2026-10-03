@@ -260,6 +260,27 @@ const D = {
     { sku:"Wild Cherry gummies",      cat:"Gummies",   hand:40,  vel:100, cover:12,  lead:0,  st:"over",     po:0, inc:false, note:"Retired. No reorder. Pull it from the site when it hits zero" },
     { sku:"Microdose capsules",       cat:"Capsules",  hand:0,   vel:0,   cover:0,   lead:42, st:"critical", po:10000, inc:false, note:"Never produced. $10,000 funds the first run, and the tubes are the long pole at four to five weeks from China" },
   ],
+  // Redline alerts. The reorder point per SKU, where the alert goes, and who handles
+  // the supplier message. The warehouse system is the system of record until this is wired.
+  alerts: {
+    live: false,
+    channels: [
+      { n:"Email to DB", on:true, note:"The alert itself. Goes to the inbox he actually reads" },
+      { n:"Slack, tagged", on:true, note:"Same alert in the channel, so it isn't only in one place" },
+      { n:"Supplier message", on:false, note:"Drafted, not sent. WhatsApp for packaging, email for the manufacturer. Somebody reviews it before it goes" },
+      { n:"Phone", on:false, note:"DB's call. He didn't think it was necessary" },
+    ],
+    rows: [
+      { sku:"Espresso dark chocolate",  hand:332, redline:574, lead:56, what:"2,000 boxes, $1,560", to:"China, to identify" },
+      { sku:"Toffee milk chocolate",    hand:345, redline:345, lead:56, what:"2,000 boxes, $1,560", to:"China, to identify" },
+      { sku:"Mint milk chocolate",      hand:298, redline:334, lead:56, what:"2,000 boxes, $1,560", to:"China, to identify" },
+      { sku:"Dubai milk chocolate",     hand:216, redline:315, lead:56, what:"2,000 boxes, $1,560", to:"China, to identify" },
+      { sku:"Strawberry Mango gummies", hand:452, redline:319, lead:21, what:"1,000 tins filled, $6,260", to:"LA manufacturer" },
+      { sku:"Blue Raspberry gummies",   hand:751, redline:207, lead:21, what:"1,000 tins filled, $6,260", to:"LA manufacturer" },
+    ],
+    note:"Redlines are set at the lead time plus a week of buffer: 70 days of sales on chocolate against a six to eight week box lead, 30 days on gummies against three weeks of production. Nothing fires yet. The threshold field in the warehouse system still reads zero on every SKU, and that's where the alert has to be set for it to be real.",
+  },
+
   // The capsule trigger. Not a reorder, a launch, so it is funded rather than reordered.
   trigger: {
     sku:"Microdose capsules", amount:10000, from:"Inventory bucket",

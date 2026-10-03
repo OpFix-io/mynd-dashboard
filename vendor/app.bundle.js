@@ -1224,6 +1224,72 @@ const D = {
     inc: false,
     note: "Never produced. $10,000 funds the first run, and the tubes are the long pole at four to five weeks from China"
   }],
+  // Redline alerts. The reorder point per SKU, where the alert goes, and who handles
+  // the supplier message. The warehouse system is the system of record until this is wired.
+  alerts: {
+    live: false,
+    channels: [{
+      n: "Email to DB",
+      on: true,
+      note: "The alert itself. Goes to the inbox he actually reads"
+    }, {
+      n: "Slack, tagged",
+      on: true,
+      note: "Same alert in the channel, so it isn't only in one place"
+    }, {
+      n: "Supplier message",
+      on: false,
+      note: "Drafted, not sent. WhatsApp for packaging, email for the manufacturer. Somebody reviews it before it goes"
+    }, {
+      n: "Phone",
+      on: false,
+      note: "DB's call. He didn't think it was necessary"
+    }],
+    rows: [{
+      sku: "Espresso dark chocolate",
+      hand: 332,
+      redline: 574,
+      lead: 56,
+      what: "2,000 boxes, $1,560",
+      to: "China, to identify"
+    }, {
+      sku: "Toffee milk chocolate",
+      hand: 345,
+      redline: 345,
+      lead: 56,
+      what: "2,000 boxes, $1,560",
+      to: "China, to identify"
+    }, {
+      sku: "Mint milk chocolate",
+      hand: 298,
+      redline: 334,
+      lead: 56,
+      what: "2,000 boxes, $1,560",
+      to: "China, to identify"
+    }, {
+      sku: "Dubai milk chocolate",
+      hand: 216,
+      redline: 315,
+      lead: 56,
+      what: "2,000 boxes, $1,560",
+      to: "China, to identify"
+    }, {
+      sku: "Strawberry Mango gummies",
+      hand: 452,
+      redline: 319,
+      lead: 21,
+      what: "1,000 tins filled, $6,260",
+      to: "LA manufacturer"
+    }, {
+      sku: "Blue Raspberry gummies",
+      hand: 751,
+      redline: 207,
+      lead: 21,
+      what: "1,000 tins filled, $6,260",
+      to: "LA manufacturer"
+    }],
+    note: "Redlines are set at the lead time plus a week of buffer: 70 days of sales on chocolate against a six to eight week box lead, 30 days on gummies against three weeks of production. Nothing fires yet. The threshold field in the warehouse system still reads zero on every SKU, and that's where the alert has to be set for it to be real."
+  },
   // The capsule trigger. Not a reorder, a launch, so it is funded rather than reordered.
   trigger: {
     sku: "Microdose capsules",
@@ -3454,13 +3520,14 @@ const SEATS = [{
   id: "coo",
   seat: "Chief Operating Officer",
   short: "COO",
-  who: "Camila",
+  who: "Open",
+  open: true,
   reports: "founder",
   line: "Run the day to day so the business works without the owner in the middle of every task.",
   manages: "Suppliers and manufacturers, the warehouse, day to day coordination",
   not: "Recipes, code or brand direction.",
   measure: "Needs 30 days",
-  need: "History before a target means anything",
+  need: "Somebody in the seat, then 30 days of history",
   doc: "01 Chief Operating Officer"
 }, {
   id: "content",
@@ -11822,11 +11889,238 @@ function InvMovements() {
     icon: "i"
   }, "Wholesale, samples, reships and comps leave the shelf without touching the order platform. That's why shipments never tie to revenue and counts drift. Each one gets logged here as it moves."));
 }
+
+// Redline alerts. Thresholds are editable and persist in the browser, the same way the
+// score log does, because the number DB has to set is the whole point of the page.
+const RED_KEY = "mynd.redline.v1";
+const RedStore = {
+  v: {},
+  subs: new Set()
+};
+try {
+  const raw = localStorage.getItem(RED_KEY);
+  if (raw) RedStore.v = JSON.parse(raw) || {};
+} catch (e) {}
+function useRed() {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force(x => x + 1);
+    RedStore.subs.add(f);
+    return () => RedStore.subs.delete(f);
+  }, []);
+  return RedStore;
+}
+function redOf(r) {
+  const v = RedStore.v[r.sku];
+  return v === undefined || v === "" ? r.redline : Number(v);
+}
+function redSet(sku, v) {
+  RedStore.v = {
+    ...RedStore.v,
+    [sku]: v
+  };
+  try {
+    localStorage.setItem(RED_KEY, JSON.stringify(RedStore.v));
+  } catch (e) {}
+  RedStore.subs.forEach(f => f());
+}
+function redReset() {
+  RedStore.v = {};
+  try {
+    localStorage.removeItem(RED_KEY);
+  } catch (e) {}
+  RedStore.subs.forEach(f => f());
+}
+function RedInput({
+  r
+}) {
+  useRed();
+  const [draft, setDraft] = useState(String(redOf(r)));
+  useEffect(() => {
+    setDraft(String(redOf(r)));
+  }, [RedStore.v[r.sku]]);
+  return /*#__PURE__*/React.createElement("input", {
+    value: draft,
+    inputMode: "numeric",
+    onChange: e => setDraft(e.target.value.replace(/[^0-9]/g, "")),
+    onBlur: () => redSet(r.sku, draft),
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    className: "mono",
+    style: {
+      width: 72,
+      textAlign: "right",
+      background: "var(--surface-3)",
+      border: "1px solid var(--rule)",
+      borderRadius: 4,
+      color: "var(--ink)",
+      fontSize: 12.5,
+      padding: "3px 7px",
+      outline: "none"
+    }
+  });
+}
+function InvAlerts() {
+  const R = useRed();
+  const A = D.alerts;
+  const rows = A.rows.map(r => {
+    const red = redOf(r);
+    const st = r.hand < red ? "breached" : r.hand === red ? "at" : "clear";
+    return {
+      ...r,
+      red,
+      st,
+      gap: r.hand - red
+    };
+  });
+  const breached = rows.filter(r => r.st !== "clear").length;
+  const cell = {
+    textAlign: "right"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-in"
+  }, /*#__PURE__*/React.createElement(PageHead, {
+    title: "Redline alerts",
+    sub: "The reorder point on every SKU, where the alert goes, and who sends the supplier message.",
+    meta: "Type over any redline to change it. Changes save in this browser.",
+    right: Object.keys(R.v).length > 0 && /*#__PURE__*/React.createElement("button", {
+      onClick: redReset,
+      style: {
+        background: "none",
+        border: "1px solid var(--rule)",
+        borderRadius: "var(--r-sm)",
+        color: "var(--ink-mute)",
+        fontSize: 11,
+        padding: "5px 10px",
+        cursor: "pointer"
+      }
+    }, "Reset redlines")
+  }), /*#__PURE__*/React.createElement(G, {
+    c: 4,
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement(KPI, {
+    label: "Alerts firing",
+    value: A.live ? String(breached) : "None",
+    tone: A.live ? "bad" : "mute",
+    sub: A.live ? "of 6 SKUs" : "nothing is wired yet",
+    help: "Nothing fires until the threshold is set in the warehouse system. Today every field there reads zero."
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "At or past the redline",
+    value: String(breached),
+    tone: breached ? "bad" : "good",
+    sub: "of 6 live SKUs"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "Where it goes",
+    value: "Email and Slack",
+    tone: "accent",
+    sub: "to DB, tagged"
+  }), /*#__PURE__*/React.createElement(KPI, {
+    label: "Supplier message",
+    value: "Drafted",
+    tone: "warn",
+    sub: "reviewed before it sends",
+    help: "DB asked for the supplier email to fire off the alert and for someone else to manage the thread. Drafting it and holding it for review is the safer version."
+  })), /*#__PURE__*/React.createElement(Card, {
+    pad: 0,
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "scroll-x"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "tbl"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Product"), /*#__PURE__*/React.createElement("th", {
+    style: cell
+  }, "On hand"), /*#__PURE__*/React.createElement("th", {
+    style: cell
+  }, "Redline"), /*#__PURE__*/React.createElement("th", {
+    style: cell
+  }, "Gap"), /*#__PURE__*/React.createElement("th", {
+    style: cell
+  }, "Lead"), /*#__PURE__*/React.createElement("th", null, "What it triggers"), /*#__PURE__*/React.createElement("th", null, "To"), /*#__PURE__*/React.createElement("th", null, "Status"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.sku
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontWeight: 600
+    }
+  }, r.sku), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: cell
+  }, fmt.n(r.hand)), /*#__PURE__*/React.createElement("td", {
+    style: cell
+  }, /*#__PURE__*/React.createElement(RedInput, {
+    r: r
+  })), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      ...cell,
+      color: r.gap < 0 ? "var(--bad)" : "var(--good)"
+    }
+  }, r.gap > 0 ? "+" : "", fmt.n(r.gap)), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: cell
+  }, r.lead, "d"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 12,
+      color: "var(--ink-soft)"
+    }
+  }, r.what), /*#__PURE__*/React.createElement("td", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-mute)"
+    }
+  }, r.to), /*#__PURE__*/React.createElement("td", null, r.st === "breached" ? /*#__PURE__*/React.createElement(Badge, {
+    tone: "bad",
+    solid: true
+  }, "Order now") : r.st === "at" ? /*#__PURE__*/React.createElement(Badge, {
+    tone: "warn"
+  }, "At the line") : /*#__PURE__*/React.createElement(Badge, {
+    tone: "good"
+  }, "Clear")))))))), /*#__PURE__*/React.createElement(SecLabel, {
+    icon: "alert"
+  }, "Where an alert goes"), /*#__PURE__*/React.createElement(G, {
+    c: 4,
+    gap: 12,
+    style: {
+      marginBottom: 16
+    }
+  }, A.channels.map(c => /*#__PURE__*/React.createElement(Card, {
+    key: c.n,
+    pad: 15
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, c.n), /*#__PURE__*/React.createElement(Badge, {
+    tone: c.on ? "good" : "mute"
+  }, c.on ? "On" : "Off")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--ink-soft)",
+      lineHeight: 1.5
+    }
+  }, c.note)))), /*#__PURE__*/React.createElement(Note, {
+    tone: "warn",
+    icon: "!"
+  }, A.note));
+}
 const SUBVIEWS = {
   boardroom: [null, BoardFinancials, BoardInsights, BoardHealth],
   cash: [null, CashForecast, CashTransactions],
   revenue: [null, RevenueChannels],
-  inventory: [null, InvReorders, InvMovements],
+  inventory: [null, InvReorders, InvAlerts, InvMovements],
   costs: [null, CostRates, CostFormulation, CostLadder, CostLog],
   production: [null, ProdPurchases, ProdRecon],
   suppliers: [null, SupLedger],
@@ -11854,6 +12148,124 @@ try {
 } catch (e) {}
 function scoreEmit() {
   ScoreStore.subs.forEach(f => f());
+}
+
+/* ------------------------------------------------------------ seat store
+   Who sits in each seat. Separate from the score log because roles change for
+   reasons that have nothing to do with a number, and a seat can be open. */
+const SEAT_KEY = "mynd.seats.v1";
+const SeatStore = {
+  who: {},
+  subs: new Set()
+};
+try {
+  const raw = localStorage.getItem(SEAT_KEY);
+  if (raw) SeatStore.who = JSON.parse(raw) || {};
+} catch (e) {}
+function seatEmit() {
+  SeatStore.subs.forEach(f => f());
+}
+function useSeats() {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force(x => x + 1);
+    SeatStore.subs.add(f);
+    return () => SeatStore.subs.delete(f);
+  }, []);
+  return SeatStore;
+}
+function seatWho(s) {
+  const v = SeatStore.who[s.id];
+  if (v === undefined) return {
+    name: s.who,
+    open: !!s.open,
+    edited: false
+  };
+  const t = String(v).trim();
+  return {
+    name: t === "" ? "Open" : t,
+    open: t === "" || t.toLowerCase() === "open",
+    edited: true
+  };
+}
+function seatSetWho(id, v) {
+  SeatStore.who = {
+    ...SeatStore.who,
+    [id]: v
+  };
+  try {
+    localStorage.setItem(SEAT_KEY, JSON.stringify(SeatStore.who));
+  } catch (e) {}
+  seatEmit();
+}
+function seatResetWho() {
+  SeatStore.who = {};
+  try {
+    localStorage.removeItem(SEAT_KEY);
+  } catch (e) {}
+  seatEmit();
+}
+// An editable name. Click to type, enter or blur to save, escape to cancel.
+function SeatName({
+  s,
+  size = 11
+}) {
+  useSeats();
+  const w = seatWho(s);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(w.name);
+  if (s.relationship) return /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: size,
+      color: "var(--ink-mute)"
+    }
+  }, w.name);
+  if (editing) return /*#__PURE__*/React.createElement("input", {
+    autoFocus: true,
+    value: draft,
+    onClick: e => e.stopPropagation(),
+    onChange: e => setDraft(e.target.value),
+    onBlur: () => {
+      seatSetWho(s.id, draft);
+      setEditing(false);
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter") {
+        seatSetWho(s.id, draft);
+        setEditing(false);
+      }
+      if (e.key === "Escape") {
+        setDraft(w.name);
+        setEditing(false);
+      }
+    },
+    placeholder: "Open",
+    style: {
+      width: "100%",
+      background: "var(--surface-3)",
+      border: "1px solid var(--accent)",
+      borderRadius: 4,
+      color: "var(--ink)",
+      fontSize: size,
+      padding: "2px 5px",
+      outline: "none"
+    }
+  });
+  return /*#__PURE__*/React.createElement("span", {
+    onClick: e => {
+      e.stopPropagation();
+      setDraft(w.open ? "" : w.name);
+      setEditing(true);
+    },
+    title: "Click to change who holds this seat",
+    style: {
+      fontSize: size,
+      cursor: "text",
+      borderBottom: "1px dashed var(--rule)",
+      color: w.open ? "var(--warn)" : "var(--ink-mute)",
+      fontStyle: w.open ? "italic" : "normal"
+    }
+  }, w.open ? "Open, nobody in the seat" : w.name);
 }
 function useScore() {
   const [, force] = useState(0);
@@ -12928,6 +13340,7 @@ function OrgCard({
   s,
   go
 }) {
+  useSeats();
   const x = seatRead(s),
     p = x.primary;
   return /*#__PURE__*/React.createElement(Card, {
@@ -12952,24 +13365,22 @@ function OrgCard({
       gap: 9
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    name: s.who,
+    name: seatWho(s).open ? "?" : seatWho(s).name,
     size: 30,
-    tone: s.relationship ? "mute" : "accent"
+    tone: s.relationship ? "mute" : seatWho(s).open ? "warn" : "accent"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      minWidth: 0
+      minWidth: 0,
+      flex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
       fontWeight: 600
     }
-  }, s.short), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--ink-mute)"
-    }
-  }, s.who))), /*#__PURE__*/React.createElement("p", {
+  }, s.short), /*#__PURE__*/React.createElement(SeatName, {
+    s: s
+  }))), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 11.5,
       color: "var(--ink-soft)",
@@ -13014,7 +13425,12 @@ function OrgCard({
       color: "var(--ink-mute)",
       marginLeft: 4
     }
-  }, x.hold, " of ", x.reads.length, " holding")), s.moving && /*#__PURE__*/React.createElement(Badge, {
+  }, x.hold, " of ", x.reads.length, " holding")), seatWho(s).open && /*#__PURE__*/React.createElement(Badge, {
+    tone: "warn",
+    style: {
+      alignSelf: "flex-start"
+    }
+  }, "Seat open"), s.moving && /*#__PURE__*/React.createElement(Badge, {
     tone: "info",
     style: {
       alignSelf: "flex-start"
@@ -13030,6 +13446,7 @@ function TeamOrg({
   go
 }) {
   const S = useScore();
+  const seats = useSeats();
   const owner = seatById("founder"),
     coo = seatById("coo");
   const direct = SEATS.filter(s => s.reports === "founder" && s.id !== "coo" && !s.moving);
@@ -13046,8 +13463,25 @@ function TeamOrg({
   }, /*#__PURE__*/React.createElement(PageHead, {
     title: "Org chart",
     sub: "Who does what, who it reports to, and how each seat is scoring across its metrics.",
-    meta: "Nine seats, each with a written role document. Click any seat for its scorecard.",
-    right: /*#__PURE__*/React.createElement(ModeSwitch, null)
+    meta: "Nine seats, each with a written role document. Click a name to change who holds the seat, or clear it to mark the seat open. Click anywhere else on a card for its scorecard.",
+    right: /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        gap: 10,
+        alignItems: "center"
+      }
+    }, Object.keys(seats.who).length > 0 && /*#__PURE__*/React.createElement("button", {
+      onClick: seatResetWho,
+      style: {
+        background: "none",
+        border: "1px solid var(--rule)",
+        borderRadius: "var(--r-sm)",
+        color: "var(--ink-mute)",
+        fontSize: 11,
+        padding: "5px 10px",
+        cursor: "pointer"
+      }
+    }, "Reset names"), /*#__PURE__*/React.createElement(ModeSwitch, null))
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 340,
@@ -13086,7 +13520,13 @@ function TeamOrg({
       fontSize: 15,
       fontWeight: 600
     }
-  }, D.meta.user), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(SeatName, {
+    s: {
+      ...owner,
+      who: D.meta.user
+    },
+    size: 15
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--accent)"
@@ -14252,7 +14692,7 @@ const SUBTABS = {
   boardroom: ["Boardroom", "Financials", "Insights", "System Health"],
   cash: ["Cash", "Forecast", "Transactions"],
   revenue: ["Overview", "By Channel"],
-  inventory: ["Inventory", "Reorders", "Movements"],
+  inventory: ["Inventory", "Reorders", "Alerts", "Movements"],
   costs: ["Unit cost", "Rates", "Formulation", "Volume ladder", "Change log"],
   production: ["Runs", "Purchases", "Reconciliation"],
   suppliers: ["Suppliers", "Ledger"],

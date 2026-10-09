@@ -225,7 +225,7 @@ const D = {
     t: "Strawberry Mango goes dry 10 November and is 758 units short of Q4",
     tone: "bad"
   }, {
-    t: "Shipped units imply about twice the revenue the bank received. Not reconciled",
+    t: "About $11,035 of shipped value isn't in the bank once free product is allowed for. Not reconciled",
     tone: "bad"
   }, {
     t: "Reorder threshold still reads zero on every SKU",
@@ -976,9 +976,11 @@ const D = {
   }],
   // Revenue per product is deliberately null. Units come from the warehouse read and revenue from the
   // bank, and the two don't reconcile: 1,353 units in 30 days priced at list is $94,457, being 1,298 at
-  // $69 and 55 Love gummies at $89, a $69.81 unit-weighted average. The bank got $49,889, so $44,568 is
-  // unexplained. Free and comped product covers roughly a third of it. The rest is open, and it sits on
-  // Data Health rather than being smoothed into a product table.
+  // $69 and 55 Love gummies at $89, a $69.81 unit-weighted average. The bank got $49,889, a $44,568 gap.
+  // July ran 125 sample and comped shipments out of 348, and at that rate 486 of these units are free
+  // product worth $33,533 at list, which is 75% of the gap. That leaves about $11,035 open. The 36% is a
+  // July shipment ratio applied to a September unit count, so it's an estimate, and it sits on Data
+  // Health rather than being smoothed into a product table.
   subs: {
     // 94 active subscriptions against 905 approved customers. The retention curve is cumulative
     // survival from the first bill, measured on the CRM export to 25 September.

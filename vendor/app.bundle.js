@@ -225,7 +225,7 @@ const D = {
     t: "Strawberry Mango goes dry 10 November and is 758 units short of Q4",
     tone: "bad"
   }, {
-    t: "About $11,035 of shipped value isn't in the bank once free product is allowed for. Not reconciled",
+    t: "39 discount codes are live with no end date. A permanent code is a price, not a promotion",
     tone: "bad"
   }, {
     t: "Reorder threshold still reads zero on every SKU",
@@ -974,13 +974,13 @@ const D = {
     rev: null,
     trend: [14, 24, 35, 45, 55]
   }],
-  // Revenue per product is deliberately null. Units come from the warehouse read and revenue from the
-  // bank, and the two don't reconcile: 1,353 units in 30 days priced at list is $94,457, being 1,298 at
-  // $69 and 55 Love gummies at $89, a $69.81 unit-weighted average. The bank got $49,889, a $44,568 gap.
-  // July ran 125 sample and comped shipments out of 348, and at that rate 486 of these units are free
-  // product worth $33,533 at list, which is 75% of the gap. That leaves about $11,035 open. The 36% is a
-  // July shipment ratio applied to a September unit count, so it's an estimate, and it sits on Data
-  // Health rather than being smoothed into a product table.
+  // Revenue per product is deliberately null, and list price is why. 1,353 units shipped in 30 days and
+  // the bank collected $49,889. Back out free product at July's rate, 125 sample and comped shipments of
+  // 348, and 867 units were paid for, which puts the realized price at $57.54. That's 17.6% under the
+  // $69.81 list average, and the coupon export of 5 October measured 19.0% off gross on couponed orders.
+  // Two reads, close enough to call it the same thing. So units times list overstates revenue by about a
+  // fifth before comps are counted, and a per-product revenue figure can't be derived from either. It
+  // needs realized price per order from the order platform.
   subs: {
     // 94 active subscriptions against 905 approved customers. The retention curve is cumulative
     // survival from the first bill, measured on the CRM export to 25 September.

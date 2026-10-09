@@ -19,7 +19,8 @@ const NAV = [
     { id:"revenue", l:"Overview" },
     { id:"retention", l:"Retention" },
     { id:"subs", l:"Subscriptions" },
-    { id:"wholesale", l:"Wholesale" },
+    { id:"wholesale", l:"Wholesale/Manual" },
+    { id:"attribution", l:"Creators" },
   ]},
   { g:"Marketing", icon:"mkt", items:[
     { id:"today", l:"Today So Far" },
@@ -27,7 +28,6 @@ const NAV = [
     { id:"cohort", l:"Cohort LTV" },
     { id:"mktperf", l:"Performance" },
     { id:"ltv", l:"CAC Ceiling" },
-    { id:"attribution", l:"Attribution" },
     { id:"social", l:"Social" },
   ]},
   { g:"Operations", icon:"ops", items:[
@@ -55,7 +55,7 @@ const SUBTABS = {
   fulfillment: ["Fulfillment","3PL rates"],
 };
 
-const PERIOD_PAGES = new Set(["boardroom","pl","rails","revenue","retention","wholesale","daily","mktperf","opshealth"]);
+const PERIOD_PAGES = new Set(["boardroom","pl","rails","revenue","retention","wholesale","attribution","daily","mktperf","opshealth"]);
 
 const PAGE_GROUP = {};
 NAV.forEach(g => g.items.forEach(i => { PAGE_GROUP[i.id] = g.g; }));

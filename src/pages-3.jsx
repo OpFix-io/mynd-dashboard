@@ -9,7 +9,7 @@ function MktPerf() {
     <div className="page-in">
       <PageHead title="Marketing performance" sub={m.note}
         right={<Seg options={[{v:"channels",l:"Channels"},{v:"trend",l:"Trend"},{v:"creative",l:"Creative"}]} value={tab} onChange={setTab}/>} />
-      <G c={6} name="6" style={{ marginBottom:24 }}>{m.headline.map(k=><KPI key={k.label} {...k}/>)}</G>
+      <G c={4} name="4" style={{ marginBottom:24 }}>{m.headline.map(k=><KPI key={k.label} {...k}/>)}</G>
 
       {tab==="channels" && (
         <>
@@ -160,7 +160,7 @@ function Retention() {
   return (
     <div className="page-in">
       <PageHead title="Retention" sub={r.note} />
-      <G c={6} name="6" style={{ marginBottom:24 }}>{r.kpi.map(k=><KPI key={k.label} {...k}/>)}</G>
+      <G c={4} name="4" style={{ marginBottom:24 }}>{r.kpi.map(k=><KPI key={k.label} {...k}/>)}</G>
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1.3fr 1fr", marginBottom:22 }}>
         <Card pad={20}>
           <SecLabel icon="rev" right="six months">Existing against new</SecLabel>
@@ -273,14 +273,23 @@ function Fulfillment() {
   const f = D2.fulfillment;
   return (
     <div className="page-in">
-      <PageHead title="Fulfillment" sub="What ships, and how much of it your systems can see."
-        meta="Moved here from Revenue. It is an operations problem, not a revenue one." />
+      <PageHead title="Fulfillment" sub="What ships, what doesn't, and how much of it your systems can see."
+        meta="This page exists to surface the gap between what you collected and what you shipped. It runs in both directions." />
       <G c={4} style={{ marginBottom:22 }}>
         <KPI label="Total shipments" value={fmt.n(f.shipments.total)} tone="ink" sub="July" />
         <KPI label="Touched the platform" value={fmt.n(f.shipments.onPlatform)} tone="good" sub="64.1%" />
-        <KPI label="Never touched it" value={fmt.n(f.shipments.invisible)} tone="bad" sub={fmt.pct(f.shipments.pct)} />
-        <KPI label="Shipped same day" value="78%" tone="warn" sub="target 90%" />
+        <KPI label="Shipped, never on the platform" value={fmt.n(f.shipments.invisible)} tone="bad" sub={fmt.pct(f.shipments.pct)}
+          help="Stock left the building and no sale was recorded. Wholesale, samples, reships and comps." />
+        <KPI label="Paid, never shipped" value={f.unshipped.value} tone="mute" sub="no match running"
+          help={f.unshipped.note + " " + f.unshipped.need} />
       </G>
+      <Note tone="bad" icon="!">
+        The two middle tiles are the same failure facing opposite ways. Stock that ships without a sale makes
+        revenue look small and inventory look wrong. An order that is paid for and never ships makes revenue
+        look fine and loses the customer, usually as a dispute rather than a complaint. Only the first one is
+        measured today. {f.unshipped.need} closes the second.
+      </Note>
+      <div style={{ height:22 }} />
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1fr 1.3fr" }}>
         <Card pad={20}>
           <SecLabel icon="box">Visible against invisible</SecLabel>

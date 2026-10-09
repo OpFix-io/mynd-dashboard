@@ -52,6 +52,12 @@ function applyPeriod(label, customDays) {
     const opex = pRound(PERIOD_BASE.D.pl.find(r => r.line === "OPEX").v * rows.length / 30);
     const cm = rev - cod - mkt, op = cm - opex;
     const set = { "Revenue":rev, "Cost of delivery":cod, "Marketing":mkt, "Contribution margin":cm, "OPEX":opex, "Operating profit":op };
+    // The three component rows under cost of delivery aren't in the daily table, so they
+    // scale against their own share of the 30 day cost of delivery and keep the rollup honest.
+    const baseCod = PERIOD_BASE.D.pl.find(r => r.line === "Cost of delivery").v;
+    PERIOD_BASE.D.pl.filter(r => r.comp).forEach(r => {
+      set[r.line] = baseCod ? pRound(cod * (r.v / baseCod)) : 0;
+    });
     D.pl.forEach(r => { r.v = set[r.line]; r.pct = rev ? +(r.v / rev * 100).toFixed(1) : 0; if (r.line === "Revenue") r.pct = 100; });
     D.unit.forEach(u => {
       if (u.k === "rev") u.value = fmt.usd(rev);

@@ -1,11 +1,63 @@
 // pages-1.jsx, Boardroom, Goals, Org, Project Board, Money pages
 
 /* ============================== BOARDROOM ============================== */
+/* Urgent alerts. Highest position on the Boardroom by design: a breach on either row stops
+   the business rather than slowing it, so neither sits below a KPI grid. A row with no feed
+   says so instead of showing a reassuring zero. */
+function UrgentAlerts() {
+  const rows = D.urgent || [];
+  if (!rows.length) return null;
+  const live = rows.filter(r => r.state === "breach").length;
+  return (
+    <>
+      <SecLabel icon="alert" right={live ? `${live} live` : "no feed connected"}
+        help="Two things that can stop this business rather than slow it down. They sit above every other number on purpose.">
+        Urgent
+      </SecLabel>
+      <div style={{ display:"grid", gap:12, marginBottom:26 }}>
+        {rows.map(r => {
+          const breach = r.state === "breach";
+          const tone = breach ? "bad" : "info";
+          return (
+            <Card key={r.k} pad={0}
+              style={{ overflow:"hidden", borderColor: breach ? T("bad") : "var(--rule)" }}>
+              <div style={{ display:"flex", alignItems:"stretch" }}>
+                <div style={{ width:5, background:T(tone), flexShrink:0 }} />
+                <div style={{ padding:"15px 18px", display:"flex", gap:18, alignItems:"center",
+                              flexWrap:"wrap", flex:1, minWidth:0 }}>
+                  <div style={{ minWidth:0, flex:"1 1 280px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:4, flexWrap:"wrap" }}>
+                      <Ico n="alert" s={13} />
+                      <span style={{ fontSize:13.5, fontWeight:650, color:"var(--ink)" }}>{r.label}</span>
+                      <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.06em",
+                        textTransform:"uppercase", padding:"2px 7px", borderRadius:4,
+                        background:TT(tone), color:T(tone) }}>{r.value}</span>
+                    </div>
+                    <div style={{ fontSize:11.5, color:"var(--ink-soft)", lineHeight:1.45 }}>{r.note}</div>
+                  </div>
+                  <div style={{ flex:"0 0 auto", textAlign:"right", minWidth:0 }}>
+                    <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.06em",
+                                  textTransform:"uppercase", color:"var(--ink-mute)" }}>Source</div>
+                    <div className="mono" style={{ fontSize:12, fontWeight:600, color:"var(--ink)" }}>{r.source}</div>
+                    <div style={{ fontSize:10.5, color:"var(--ink-mute)", marginTop:3, maxWidth:240 }}>{r.need}</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function Boardroom({ go, period }) {
   return (
     <div className="page-in">
       <PageHead title="Boardroom" sub={`The whole business in one view · ${period}`}
         meta="Live across cash, revenue, margin, subscriptions, inventory and the team." />
+
+      <UrgentAlerts />
 
       <SecLabel icon="dollar" help="The eight numbers that describe whether this business is working.">Unit economics · {period}</SecLabel>
       <G c={4} name="4" style={{ marginBottom: 26 }}>
@@ -72,11 +124,11 @@ function Boardroom({ go, period }) {
           <DistributionsTrend h={168} />
         </Card>
         <Card pad={20}>
-          <SecLabel icon="money" right="Mercury + BlueBanc">Cash position</SecLabel>
+          <SecLabel icon="money" right="Mercury + Bluebanc">Cash position</SecLabel>
           <div style={{ display:"flex", alignItems:"center", gap:20, marginBottom:16 }}>
-            <Donut v={68751} max={141754} size={96} tone="good" label="$68.8K" sub="on hand" />
+            <Donut v={37838} max={142264} size={96} tone="good" label="$37.8K" sub="on hand" />
             <div style={{ display:"flex", flexDirection:"column", gap:10, minWidth:0 }}>
-              {[["Operating floor","$23,585","accent"],["Free above floor","$45,166","good"],["Card headroom","$23,619","info"]].map(([l,v,t])=>(
+              {[["Operating balance","$1,314","bad"],["Its floor","$28,400","accent"],["Card owed","$24,724","info"]].map(([l,v,t])=>(
                 <div key={l}>
                   <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--ink-mute)" }}>{l}</div>
                   <div className="mono" style={{ fontSize:15, fontWeight:600, color:T(t) }}>{v}</div>
@@ -98,11 +150,11 @@ function DistributionsTrend({ h = 150 }) {
   const paid = d.filter(r => r.v > 0).length;
   return (<>
     <SecLabel icon="money" right={`${fmt.usd(ytd)} this year`}
-      help="What you've taken out of the business as owner, by month. Before the Sep 15 cut-over these were draws taken whenever cash allowed. From the cut-over, the Owner profit bucket takes 15% of every sweep.">Distributions trend</SecLabel>
+      help="What you've taken out of the business as owner, by month. Before the Sep 15 cut-over these were draws taken whenever cash allowed. From 8 October the Owner bucket is off the sweep rule and distributions pause while the buyout runs.">Distributions trend</SecLabel>
     <BarChart data={d.map((r, i) => ({ ...r, tone: i === d.length - 1 ? "accent" : r.v ? "violet" : "info" }))} h={h} />
     <p style={{ fontSize:11.5, color:"var(--ink-mute)", marginTop:12 }}>
-      {paid} of {d.length} months paid anything, and no two the same. September is month to date. From the cut-over the Owner
-      profit bucket fills on every sweep, so this line should steady.
+      {paid} of {d.length} months paid anything, and no two the same. September is month to date. From 8 October the
+      Owner bucket is off the sweep rule, so this line stays flat until the buyout clears.
     </p>
   </>);
 }
@@ -252,14 +304,14 @@ function Cash() {
       <PageHead title="Cash and buckets" sub="What's spendable, and where every dollar routes on the way in."
         right={<Seg options={[{v:"buckets",l:"Buckets"},{v:"accounts",l:"Accounts"},{v:"flow",l:"Waterfall"}]} value={v} onChange={setV} />} />
       <G c={4} style={{ marginBottom:24 }}>
-        <KPI label="Cash on hand" value="$68,751" tone="ink" sub="two banks" delta={70.4} help="Mercury $62,605 and Bluebanc $6,146, read at source 1 October." />
-        <KPI label="Operating floor" value="$23,585" tone="accent" sub="1.25x the Q4 base" help="Fixed overhead plus card processing, times 1.25 for Q4. It rises to $28,302 from January." />
-        <KPI label="Free above floor" value="$17,847" tone="good" sub="what buckets can take" />
-        <KPI label="Card headroom" value="$23,619" tone="info" sub="49% utilized" delta={4623} />
+        <KPI label="Cash on hand" value="$37,838" tone="warn" sub="two banks" help="Mercury $35,286 across every account and Bluebanc $2,552, read at source 8 October 11:24am PST." />
+        <KPI label="Operating floor" value="$28,400" tone="accent" sub="a 2.8% cushion" help="Operating's real monthly outflow is $27,631: direct ACH overhead, the monthly card payment, card processing at the measured 4.5%, and professional services. The floor is a 2.8% cushion on top of it." />
+        <KPI label="Operating holds" value="$1,314" tone="bad" sub="short of the floor by $27,086" help="Everything else sits in buckets that are already earmarked. Rule 2 tops Operating up from Reserve, and Reserve holds $2,055, so it covers $2,055 of the gap and no more until it fills." />
+        <KPI label="Card headroom" value="$21,976" tone="info" sub="53% used" help="A $46,700 limit against the $24,724 the issuer showed DB on 8 October, after that morning's $20,000 payment. The books read $24,231 and the books are incomplete." />
       </G>
 
       {v==="buckets" && (
-        <G c={5} name="5" gap={13} style={{ marginBottom:24 }}>
+        <G c={4} name="4" gap={13} style={{ marginBottom:24 }}>
           {D.buckets.map(b=>(
             <Card key={b.n} pad={16} hover>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
@@ -267,8 +319,8 @@ function Cash() {
                 <Badge tone={b.tone}>{b.pct}%</Badge>
               </div>
               <div className="mono" style={{ fontSize:19, fontWeight:600, color:T(b.tone) }}>{fmt.usd(b.v)}</div>
-              <div style={{ fontSize:11, color:"var(--ink-mute)", marginBottom:9 }}>of {fmt.usd(b.target)}</div>
-              <Bar pct={(b.v/b.target)*100} tone={b.tone} />
+              <div style={{ fontSize:11, color:"var(--ink-mute)", marginBottom:9 }}>fills {fmt.usd(b.target)} a month</div>
+              <Bar pct={Math.min(100,(b.v/b.target)*100)} tone={b.tone} />
             </Card>
           ))}
         </G>
@@ -284,7 +336,7 @@ function Cash() {
                 <td className="num" style={{ color:"var(--ink-mute)" }}>{a.c}</td>
                 <td style={{ color:"var(--ink-soft)", fontSize:12 }}>{a.role}</td>
                 <td className="num" style={{ textAlign:"right", fontWeight:600, color:a.v?T(a.tone):"var(--ink-mute)" }}>{fmt.usd(a.v)}</td>
-                <td style={{ width:130 }}><Bar pct={(a.v/68751)*100} tone={a.tone} /></td>
+                <td style={{ width:130 }}><Bar pct={(a.v/37838)*100} tone={a.tone} /></td>
               </tr>))}</tbody>
           </table></div>
         </Card>
@@ -293,8 +345,8 @@ function Cash() {
       {v==="flow" && (
         <Card pad={24} style={{ marginBottom:24 }}>
           {[{l:"Money settles in",v:"$49,889",t:"info",d:"All three rails land in Bluebanc, then sweep to Mercury"},
-            {l:"Operating fills to the floor",v:"$23,585",t:"accent",d:"Rent, payroll, software, support"},
-            {l:"Everything above sweeps",v:"$24,314",t:"good",d:"Splits five ways on the percentages you set"}].map((r,i)=>(
+            {l:"Operating fills to the floor",v:"$28,400",t:"accent",d:"Rent, payroll, software, support, card payment, processing"},
+            {l:"Everything above sweeps",v:"$26,304",t:"good",d:"Splits four ways on the percentages set 8 October"}].map((r,i)=>(
             <div key={i}>
               <div style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:16, alignItems:"center",
                 padding:"15px 17px", background:TT(r.t), borderRadius:"var(--r-md)", border:`1px solid ${T(r.t)}26` }}>
@@ -305,7 +357,7 @@ function Cash() {
               <div style={{ textAlign:"center", color:"var(--ink-mute)", padding:"5px 0" }}>↓</div>
             </div>
           ))}
-          <G c={5} name="5" gap={9}>
+          <G c={4} name="4" gap={9}>
             {D.buckets.map(b=>(
               <div key={b.n} style={{ padding:"13px 11px", background:"var(--surface-3)",
                 borderRadius:"var(--r-md)", border:"1px solid var(--rule)", textAlign:"center" }}>
@@ -321,14 +373,14 @@ function Cash() {
 
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1.3fr 1fr" }}>
         <Card pad={20}>
-          <SecLabel icon="chart" right="seven months">Cash trail</SecLabel>
+          <SecLabel icon="chart" right="Mercury, month end" help="Every Mercury account summed at each month end, from the Mercury balance sheet read 8 October. Bluebanc isn't in it. The September jump is the $51,500 that funded the cut-over, not a trading month.">Cash trail</SecLabel>
           <Line data={D.cashTrail} h={170} tone="warn" vf={fmt.k} />
         </Card>
         <Card pad={20}>
           <SecLabel icon="clock" right="next 30 days">Committed outflows</SecLabel>
           {[["Next 7 days",6420,"warn","Rent, software, support"],
             ["8 to 14 days",3100,"info","3PL invoice, ingredients"],
-            ["15 to 30 days",9481,"bad","Buyout payment Oct 1"]].map(([l,v,t,d])=>(
+            ["15 to 30 days",9407,"bad","Buyout payment Nov 1"]].map(([l,v,t,d])=>(
             <div key={l} style={{ marginBottom:14 }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                 <span style={{ fontSize:12.5 }}>{l}</span>
@@ -357,7 +409,9 @@ function PL() {
             <th>Benchmark</th><th>What's in it</th></tr></thead>
           <tbody>{D.pl.map(r=>(
             <tr key={r.line} style={{ background:r.sub?"var(--surface-3)":undefined }}>
-              <td style={{ fontWeight:r.sub?700:500 }}>{r.line}</td>
+              <td style={{ fontWeight:r.sub?700:r.comp?400:500,
+                           paddingLeft:r.comp?26:undefined,
+                           color:r.comp?"var(--ink-soft)":undefined }}>{r.line}</td>
               <td className="num" style={{ textAlign:"right", fontWeight:r.sub?700:400 }}>{fmt.usd(r.v)}</td>
               <td className="num" style={{ textAlign:"right", fontWeight:600, color:T(r.tone) }}>{r.pct?fmt.pct(r.pct):"-"}</td>
               <td style={{ width:150 }}>{r.bench && <Bar pct={Math.min(r.pct*2,100)} tone={r.tone} />}</td>
@@ -397,7 +451,7 @@ function PL() {
 const FIXED = [
   { m:"Jun", v:28860, rev:43900, tone:"bad" }, { m:"Jul", v:28860, rev:42112, tone:"bad" },
   { m:"Aug", v:21400, rev:60243, tone:"warn" }, { m:"Sep", v:16973, rev:43171, tone:"good" },
-  { m:"Oct", v:16973, rev:49889, tone:"good", proj:true },
+  { m:"Oct", v:17058, rev:49889, tone:"good", proj:true },
 ].map(r => ({ ...r, pct: r.v / r.rev * 100 }));
 const fixedTone = (p) => p > 25 ? "bad" : p > 15 ? "warn" : "good";
 
@@ -452,10 +506,10 @@ function Debt() {
     <div className="page-in">
       <PageHead title="Debt and obligations" sub="What's owed, to whom, and when it lands." />
       <G c={4} style={{ marginBottom:24 }}>
-        <KPI label="Still to pay" value="$87,377" tone="ink" delta={-29.9} sub="principal and interest" help="Every dollar still leaving the bank. Principal alone is $76,414, and the $10,963 gap is interest the buyout has left to run." />
+        <KPI label="Still to pay" value="$89,020" tone="ink" delta={-28.6} sub="principal and interest" help="Every dollar still leaving the bank. Principal alone is $78,057, and the $10,963 gap is interest the buyout has left to run." />
         <KPI label="Next payment" value="$9,407" tone="warn" sub="Nov 1 · from debt bucket" />
-        <KPI label="Paid off by" value="Jun 15, 2027" tone="good" sub="buyout May 1 · card Jun 15" help="The date the buyout note and the card both reach zero, on the payment schedule and the card plan." />
-        <KPI label="Card utilization" value="49%" tone="warn" sub="$23,081 of $46,700" />
+        <KPI label="Buyout clears" value="May 1, 2027" tone="good" sub="card has no date" help="The buyout note reaches zero on the payment schedule. The card has no payoff date, because from 8 October only the current month is paid and the legacy balance is decided in January." />
+        <KPI label="Card utilization" value="53%" tone="warn" sub="$24,724 of $46,700" />
       </G>
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1fr 1.3fr" }}>
         <Card pad={20}>
@@ -466,7 +520,7 @@ function Debt() {
                 <span style={{ fontSize:13 }}>{d.n}</span>
                 <span className="mono" style={{ fontSize:14, fontWeight:600, color:T(d.tone) }}>{fmt.usd(d.v)}</span>
               </div>
-              <Bar pct={(d.v/87377)*100} tone={d.tone} />
+              <Bar pct={(d.v/89020)*100} tone={d.tone} />
               <p style={{ fontSize:10.5, color:"var(--ink-mute)", marginTop:5 }}>{d.note}</p>
               <p style={{ fontSize:11, marginTop:3 }}><span style={{ color:"var(--ink-mute)" }}>Paid off by </span>
                 <b className="mono" style={{ color:d.payoff === "No date set" ? "var(--ink-mute)" : "var(--ink)" }}>{d.payoff}</b></p>
@@ -490,8 +544,8 @@ function Debt() {
       <Card pad={20} style={{ marginTop:16 }}>
         <SecLabel icon="money" right="two numbers, both real">How to read what you owe</SecLabel>
         <G c={3} gap={12} style={{ marginTop:4, marginBottom:14 }}>
-          {[["Still to pay","$87,377","Every dollar that leaves the bank. Buyout payments plus the card balance","ink"],
-            ["Principal outstanding","$76,414","What the balance sheet shows. $53,333 on the buyout, $23,081 on the card","accent"],
+          {[["Still to pay","$89,020","Every dollar that leaves the bank. Buyout payments plus the card balance","ink"],
+            ["Principal outstanding","$78,057","$53,333 on the buyout and $24,724 on the card, after the $20,000 payment on 8 October","accent"],
             ["Interest still to run","$10,963","The gap between the two, across seven buyout payments","warn"]].map(([l,v,d,t])=>(
             <div key={l} style={{ background:"var(--surface-3)", borderRadius:"var(--r-md)", padding:"13px 15px" }}>
               <div style={{ fontSize:10.5, color:"var(--ink-mute)", marginBottom:4 }}>{l}</div>
@@ -507,12 +561,12 @@ function Debt() {
         </Note>
       </Card>
       <Card pad={20} style={{ marginTop:16 }}>
-        <SecLabel icon="clock" right="buyout and card, month end"
-          help="What's left on the buyout note and the card after each month's payments.">Road to zero</SecLabel>
+        <SecLabel icon="clock" right="buyout note, month end"
+          help="What's left on the buyout note after each scheduled payment. The card isn't in it.">Road to zero</SecLabel>
         <Line data={D.payoffPath} h={180} tone="good" vf={fmt.k} yMin={0} />
         <p style={{ fontSize:11.5, color:"var(--ink-mute)", marginTop:12 }}>
-          $87,377 still to pay across both. The buyout clears May 1, 2027 and the card on June 15, 2027 at $2,600 a month.
-          Anything extra onto the card pulls that date in.
+          The buyout clears May 1, 2027 and 34% of every sweep funds it. The $24,724 on the card sits outside this line:
+          from 8 October only that month's charges get paid, and the legacy balance is decided in January against Q4 actuals.
         </p>
       </Card>
     </div>
@@ -525,11 +579,11 @@ function Rails() {
         tr = D.rails.reduce((s,r)=>s+r.res,0);
   return (
     <div className="page-in">
-      <PageHead title="Payment rails" sub="All four processors, gross in, fees out, net to bank."
+      <PageHead title="Payment rails" sub="All three processors, gross in, fees out, net to bank."
         meta="Nothing hides inside a deposit." />
       <G c={4} style={{ marginBottom:24 }}>
         <KPI label="Gross" value={fmt.usd(tg)} tone="ink" sub={PERIOD.label + ", all rails"} />
-        <KPI label="Processing cost" value={fmt.usd(tf)} tone="bad" sub={fmt.pct((tf/tg)*100,2)+" all in"} help="Against a 1.5% discount rate. The gap is interchange." />
+        <KPI label="Processing cost" value={fmt.usd(tf)} tone="bad" sub={fmt.pct((tf/tg)*100,2)+" all in"} help="The discount rate is 2%, plus interchange, plus $0.30 a transaction. The all-in figure is what those three come to together, so it moves with average order value as well as with mix." />
         <KPI label="Held in reserve" value={fmt.usd(tr)} tone="warn" sub="never released" />
         <KPI label="Net to bank" value={fmt.usd(tg-tf-tr)} tone="good" sub="what actually lands" />
       </G>
@@ -556,10 +610,18 @@ function Rails() {
             </tr>))}</tbody>
         </table></div>
       </Card>
+      <div style={{ display:"grid", gap:12 }}>
       <Note tone="warn" icon="!">
         The Kurv rail is capped at $25,000 in any 30 day period, contractual, with termination rights on breach.
         Across all rails you top out near $125,000 a month. A $3M run rate needs about $250,000.
       </Note>
+      <Note tone="info" icon="i">
+        How the cost is built: a 2% discount rate, plus interchange, plus $0.30 a transaction. The $0.30 is a flat
+        fee, so it costs more as a share of a small order than a large one, which is why the all-in rate moves with
+        average order value. The per-rail all-in figures above run on one blended rate rather than three measured
+        ones, so treat the split between rails as indicative until each rail's statement is loaded.
+      </Note>
+      </div>
     </div>
   );
 }

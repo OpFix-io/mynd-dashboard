@@ -10,25 +10,37 @@ const D = {
     { i: "dollar", l: "Revenue today", v: "$1,847" },
     { i: "box",    l: "Orders today", v: "14" },
     { i: "pulse",  l: "Approval rate", v: "95.88%", tone: "warn" },
-    { i: "dollar", l: "Cash", v: "$68,751" },
+    { i: "dollar", l: "Cash", v: "$37,838" },
     { i: "alert",  l: "Strawberry Mango", v: "42d cover", tone: "warn" },
     { i: "rev",    l: "Billing rate", v: "78.9%", tone: "good" },
     { i: "clock",  l: "Next buyout", v: "$9,407 · Nov 1" },
     { i: "truck",  l: "Shipments today", v: "11" },
     { i: "dollar", l: "Revenue 30d", v: "$49,889" },
-    { i: "pulse",  l: "Over break-even", v: "$10,064", tone: "good" },
+    { i: "pulse",  l: "Over break-even", v: "$9,936", tone: "good" },
   ],
 
   // ---------------------------------------------------------------- BOARDROOM
+  // Urgent alerts sit above everything else because a breach on either one is a choke
+  // point rather than a KPI. Both are wired into the surface; neither has a live feed
+  // yet, and they say so rather than showing a reassuring zero.
+  urgent: [
+    { k:"cb", label:"Chargeback early warning", value:"No feed", state:"pending",
+      source:"Disputifier", need:"Account live, then its webhook pointed here",
+      note:"Alerts on a dispute before it becomes a chargeback, inside the window where it can still be answered. Nothing is being watched until the feed is connected." },
+    { k:"ody", label:"Transactions on odymushrooms.com", value:"No feed", state:"pending",
+      source:"Second storefront order webhook", need:"Order webhook from that storefront",
+      note:"Expected count is zero. Any transaction on that domain surfaces here the moment it lands." },
+  ],
+
   unit: [
     { k:"rev",   label:"Revenue · 30d",   value:"$49,889", delta:18.5, sub:"30 days to 5 Sep, settled", tone:"ink", help:"Collected across every rail, reconciled to bank settlement. July on the model basis was $42,112.", spark:[64267,58900,55400,51200,49800,47300,45100,42112,49889] },
     { k:"cm",    label:"Contribution margin", value:"$33,139", delta:6.1, sub:"66.4% of revenue", tone:"good", help:"Revenue less product cost, card processing and fulfillment. Fixed cost excluded. The number the business should orbit daily.", spark:[21400,19800,17900,16200,14840,28600,33139] },
-    { k:"cash",  label:"Available cash",  value:"$68,751", delta:70.4, sub:"floor $23,585", tone:"good", help:"Mercury $62,605 and Bluebanc $6,146, read at source 1 October. Free cash is what sits above the operating floor." },
-    { k:"burn",  label:"Operating profit · 30d", value:"+$16,166", delta:4075, sub:"was +$387 in July", tone:"good", help:"Revenue less product cost, processing, fulfillment and fixed operating cost. Before debt service and owner distributions. Operating profit, not net profit." },
-    { k:"be",    label:"Break-even",      value:"$39,825", delta:0, sub:"running $10,064 above it", tone:"good", help:"Fixed overhead of $16,973 plus the $9,481 debt payment, divided by a 66.43% contribution margin. No owner salary, because there isn't one." },
+    { k:"cash",  label:"Available cash",  value:"$37,838", delta:-6.3, sub:"floor $28,400", tone:"warn", help:"Mercury $35,286 across every account and Bluebanc $2,552, read at source 11:24am PST on 8 October. $29,481 left in the first week, $20,000 to the card and $9,481 to the buyout, so the fall is paydown rather than burn. Most of what is left is earmarked in buckets: Operating itself holds $1,314 against a $28,400 floor." },
+    { k:"burn",  label:"Operating profit · 30d", value:"+$16,081", delta:4053, sub:"was +$387 in July", tone:"good", help:"Revenue less product cost, processing, fulfillment and fixed operating cost. Before debt service and owner distributions. Operating profit, not net profit." },
+    { k:"be",    label:"Break-even",      value:"$39,953", delta:0, sub:"running $9,936 above it", tone:"good", help:"Fixed overhead of $17,058 plus the $9,481 debt payment, divided by a 66.43% contribution margin. No owner salary, because there isn't one." },
     { k:"ncac",  label:"Cost per new customer", value:"-", sub:"no ad spend to measure", tone:"mute", help:"Ad spend has been zero since August, so there's no acquisition cost to divide. aMER and ROAS are blank for the same reason." },
     { k:"appr",  label:"Approval rate",   value:"95.88%", delta:0, sub:"target 99%", tone:"warn", help:"Share of customers approved once the cascade has run all three rails. Closing the last four points is worth about $14,000 a year." },
-    { k:"debt",  label:"Still to pay",    value:"$87,377", delta:-29.9, sub:"next $9,407 Nov 1", tone:"ink", help:"Every dollar still leaving the bank on debt: $64,296 of remaining buyout payments, principal and interest, plus the $23,081 card balance. Principal alone is $76,414. There is one buyout note and the card, nothing else." },
+    { k:"debt",  label:"Still to pay",    value:"$89,020", delta:-28.6, sub:"next $9,407 Nov 1", tone:"ink", help:"Every dollar still leaving the bank on debt: $64,296 of remaining buyout payments across seven, principal and interest, plus the $24,723.52 card balance after the $20,000 payment on 8 October. Principal alone is $78,057. There is one buyout note and the card, nothing else." },
   ],
 
   funnel: [
@@ -67,58 +79,70 @@ const D = {
   ],
 
   // ---------------------------------------------------------------- MONEY
+  // Balances read from the Mercury balance sheet at 8 October 2026. Bluebanc is the
+  // residual against the $37,837.85 two-bank total read at source the same morning.
   accounts: [
-    { n:"Mercury · Operating", c:"1000", v:23585, role:"Holds the Q4 floor, spills to sweep", tone:"accent" },
-    { n:"Mercury · Debt svc",  c:"1060", v:9407,  role:"Funds the next buyout payment", tone:"bad" },
-    { n:"Mercury · Above the floor", c:"-", v:29613, role:"Not yet reported by bucket", tone:"mute" },
-    { n:"Mercury · Sweep",     c:"1010", v:0,     role:"Distributes to buckets daily", tone:"info" },
-    { n:"Mercury · Marketing", c:"1040", v:0,     role:"35% of sweep", tone:"violet" },
-    { n:"Mercury · Inventory", c:"1030", v:0,     role:"25% of sweep", tone:"good" },
-    { n:"Mercury · Taxes",     c:"1050", v:0,     role:"20% of sweep", tone:"warn" },
-    { n:"Mercury · Owner",     c:"1070", v:0,     role:"15% of sweep. The only owner comp there is", tone:"accent" },
-    { n:"Mercury · Reserve",   c:"1020", v:0,     role:"5%, caps at $141,754", tone:"mute" },
-    { n:"Bluebanc · Settlement", c:"1080", v:6146, role:"Rails land here, sweeps to Mercury", tone:"info" },
+    { n:"Mercury · Operating", c:"7698", v:1314,  role:"Holds the floor, spills to sweep daily", tone:"bad" },
+    { n:"Mercury · Sweep",     c:"4204", v:0,     role:"Distributes to the four buckets daily", tone:"info" },
+    { n:"Mercury · Inventory", c:"4422", v:10276, role:"38% of the sweep", tone:"good" },
+    { n:"Mercury · Debt svc",  c:"2360", v:0,     role:"34% of the sweep. Never used, and the buyout clears from here now", tone:"bad" },
+    { n:"Mercury · Taxes",     c:"5543", v:8221,  role:"20% of the sweep", tone:"warn" },
+    { n:"Mercury · Reserve",   c:"6132", v:2055,  role:"8% of the sweep, caps at $142,264", tone:"mute" },
+    { n:"Mercury · Marketing", c:"9817", v:13347, role:"Off the rule. Spends down from what it holds", tone:"violet" },
+    { n:"Mercury · Owner",     c:"3654", v:66,    role:"Off the rule. Distributions pause while the buyout runs", tone:"mute" },
+    { n:"Mercury · Clearing",  c:"-",    v:7,     role:"Retired rail. Nothing routes here", tone:"mute" },
+    { n:"Bluebanc · Settlement", c:"1080", v:2552, role:"Rails land here, sweeps to Mercury", tone:"info" },
   ],
+  // Month-end Mercury cash, every account summed, from the Mercury balance sheet
+  // read 8 October 2026. Bluebanc isn't in it, so it reads lower than the two-bank
+  // total. The September jump is the $51,500 cut-over funding, not a trading month.
   cashTrail: [
-    { m:"Apr", v:64317 },{ m:"May", v:65504 },{ m:"Jun", v:82956 },{ m:"Jul", v:59962 },
-    { m:"Aug", v:40347 },{ m:"Sep", v:57370 },{ m:"Oct", v:68751 },
+    { m:"Apr", v:51922 },{ m:"May", v:26611 },{ m:"Jun", v:6921 },{ m:"Jul", v:4704 },
+    { m:"Aug", v:6365 },{ m:"Sep", v:65912 },{ m:"Oct", v:35286 },
   ],
+  // The four-way split set on 8 October 2026. Targets are the slice of a $26,304
+  // monthly spill. Marketing and Owner Distribution came off the rule.
   buckets: [
-    { n:"Marketing", pct:35, target:9206, v:0, tone:"violet" },
-    { n:"Inventory", pct:25, target:6576, v:0, tone:"good" },
-    { n:"Taxes",     pct:20, target:5261, v:0, tone:"warn" },
-    { n:"Owner profit", pct:15, target:3946, v:0, tone:"accent" },
-    { n:"Reserve",   pct:5,  target:1315, v:0, tone:"info" },
+    { n:"Inventory",    pct:38, target:9996, v:10276, tone:"good" },
+    { n:"Debt service", pct:34, target:8943, v:0,     tone:"bad" },
+    { n:"Taxes",        pct:20, target:5261, v:8221,  tone:"warn" },
+    { n:"Reserve",      pct:8,  target:2104, v:2055,  tone:"info" },
   ],
   pl: [
     { line:"Revenue",          v:49889, pct:100,  tone:"ink",  bench:"" },
-    { line:"Cost of delivery", v:16750, pct:33.6, tone:"good", bench:"~40%", d:"Product cost 17.8%, card processing 4.5%, fulfillment 11.3%" },
+    { line:"Cost of delivery", v:16750, pct:33.6, tone:"good", bench:"~40%", d:"The three lines below, rolled up" },
+    { line:"Product cost",     v:8880,  pct:17.8, tone:"good", bench:"", d:"Materials and manufacture. 82% blended gross margin, including free and comped product", comp:true },
+    { line:"Card processing",  v:2245,  pct:4.5,  tone:"warn", bench:"2-3%", d:"2% discount rate plus interchange plus $0.30 a transaction, all in across three rails", comp:true },
+    { line:"Fulfillment",      v:5625,  pct:11.3, tone:"warn", bench:"8-12%", d:"3PL at about $10.01 an order all in, plus prep. Scales with orders, not with revenue", comp:true },
     { line:"Marketing",        v:0,     pct:0,    tone:"warn", bench:"25-30%", d:"Ad spend has been zero since August" },
     { line:"Contribution margin", v:33139, pct:66.4, tone:"good", bench:"", d:"Revenue less cost of delivery and marketing", sub:true },
-    { line:"OPEX",             v:16973, pct:34.0, tone:"bad",  bench:"~15%", d:"Fixed operating cost, confirmed line by line and closed out 1 October" },
-    { line:"Operating profit", v:16166, pct:32.4, tone:"good", bench:"15-20%", d:"Contribution margin less OPEX. Before debt service and distributions", sub:true },
+    { line:"OPEX",             v:17058, pct:34.2, tone:"bad",  bench:"~15%", d:"Fixed operating cost, confirmed line by line and closed out 1 October. Figma and DocuSign were added 8 October" },
+    { line:"Operating profit", v:16081, pct:32.2, tone:"good", bench:"15-20%", d:"Contribution margin less OPEX. Before debt service and distributions", sub:true },
   ],
   breakeven: [
     { l:"Contribution margin", v:"66.43%", d:"Gross margin less card processing and fulfillment. Both scale with revenue, so neither sits in the fixed block" },
-    { l:"Fixed cash out a month", v:"$26,454", d:"Fixed overhead $16,973 plus the $9,481 debt payment. No owner salary, because there isn't one" },
-    { l:"Break-even revenue", v:"$39,825", d:"Fixed cash out divided by contribution margin" },
-    { l:"Running above it", v:"$10,064", d:"Against $49,889 collected in the 30 days to 5 September" },
+    { l:"Fixed cash out a month", v:"$26,539", d:"Fixed overhead $17,058 plus the $9,481 debt payment. No owner salary, because there isn't one" },
+    { l:"Break-even revenue", v:"$39,953", d:"Fixed cash out divided by contribution margin" },
+    { l:"Running above it", v:"$9,936", d:"Against $49,889 collected in the 30 days to 5 September" },
   ],
   debt: [
     { n:"Buyout note", v:64296, principal:53333, note:"7 of 9 payments left, October cleared. $53,333 of principal and $10,963 of interest still to run", payoff:"May 1, 2027", tone:"bad" },
-    { n:"Chase card",  v:23081, principal:23081, note:"$46,700 limit, 49% used, $2,600 a month from the debt bucket. Balance as of 4 September", payoff:"Jun 15, 2027", tone:"warn" },
+    { n:"Chase card",  v:24724, principal:24724, note:"$46,700 limit, 53% used. Current charges paid in full monthly from 8 October. The legacy balance is held and decided in January", payoff:"No date set", tone:"warn" },
   ],
   // Two debts, one of each kind, and nothing else. An $80,000 undated obligation carried here
   // through September was the buyout note counted twice. Removed 2 October on DB's confirmation.
   debtNote: {
-    pay: 87377, principal: 76414, interest: 10963,
+    pay: 89020, principal: 78057, interest: 10963,
     startPay: 124724, startPrincipal: 124724,
     why: "Two numbers, both real. Still to pay is every dollar that leaves the bank, so it carries the interest the buyout has left to run. Principal is what the balance sheet shows. The gap between them is $10,963 of interest across seven payments.",
   },
   // combined buyout and card balance at each month end, on the schedule and the card plan
+  // Buyout note only, month end, straight off the payment schedule. The card isn't in it:
+  // from 8 October only that month's charges get paid, and what to do with the $24,724
+  // legacy balance is decided in January, so there is no card path to draw yet.
   payoffPath: [
-    { m:"Oct", v:84776 },{ m:"Nov", v:72770 },{ m:"Dec", v:60837 },{ m:"Jan", v:48977 },
-    { m:"Feb", v:37192 },{ m:"Mar", v:25481 },{ m:"Apr", v:13844 },{ m:"May", v:2281 },{ m:"Jun", v:0 },
+    { m:"Oct", v:64296 },{ m:"Nov", v:54889 },{ m:"Dec", v:45556 },{ m:"Jan", v:36296 },
+    { m:"Feb", v:27111 },{ m:"Mar", v:18000 },{ m:"Apr", v:8963 },{ m:"May", v:0 },
   ],
   schedule: [
     { d:"Sep 1, 2026", v:11555.56, s:"paid" },{ d:"Oct 1, 2026", v:9481.48, s:"paid" },
@@ -196,8 +220,6 @@ const D = {
     { sku:"Dubai milk chocolate",     cat:"Chocolate", status:"live", price:69, cost:11.65, costHigh:11.65, basis:"supplier buildup, 8 pieces", margin:83.1, units:135, rev:null, trend:[61,78,97,116,135] },
     { sku:"Wild Cherry gummies",      cat:"Gummies", status:"retired", price:69, cost:8.16, costHigh:8.64, basis:"supplier buildup", margin:88.2, units:100, rev:null, trend:[62,72,82,92,100] },
     { sku:"Love gummies",             cat:"Gummies", status:"gated", price:89, cost:null, costHigh:null, basis:"actives $3.24, build unquoted", margin:null, units:55, rev:null, trend:[14,24,35,45,55] },
-    { sku:"Sea Salt dark chocolate",  cat:"Chocolate", status:"waiting", price:69, cost:11.65, costHigh:11.65, basis:"supplier buildup, 8 pieces", margin:83.1, units:0, rev:null, trend:[0,0,0,0,0] },
-    { sku:"Microdose capsules",       cat:"Capsules", status:"never made", price:null, cost:9.67, costHigh:10.37, basis:"supplier buildup", margin:null, units:0, rev:null, trend:[0,0,0,0,0] },
   ],
   // Revenue per product is deliberately null. Units come from the warehouse read and revenue from the
   // bank, and the two don't reconcile: 1,353 units in 30 days at the $72.66 average is about $98,000
@@ -233,7 +255,7 @@ const D = {
       { label:"CAC", value:"-", sub:"needs attribution", tone:"mute" },
       { label:"Impressions", value:"0", sub:"all channels", tone:"mute" },
       { label:"CTR", value:"0.00%", sub:"-", tone:"mute" },
-      { label:"Planned Q4 budget", value:"$13,125", sub:"35% of sweep", tone:"violet" },
+      { label:"Marketing on hand", value:"$13,347", sub:"off the rule, spends down", tone:"violet" },
     ],
     accounts: [
       { n:"Meta Business", id:"act_8841203", status:"Paused", spend:0, imp:0, clicks:0, ctr:0, cpc:0, leads:0 },
@@ -258,7 +280,6 @@ const D = {
     { sku:"Toffee milk chocolate",    cat:"Chocolate", hand:345, vel:148, cover:70,  lead:56, st:"healthy",  po:1560, inc:false, note:"Covered by 284. 500 boxes behind it" },
     { sku:"Love gummies",             cat:"Gummies",   hand:6,   vel:55,  cover:3,   lead:21, st:"warning",  po:0, inc:false, note:"Selling down. Reorder gated on cash flow, and the 12-piece run has never been quoted" },
     { sku:"Wild Cherry gummies",      cat:"Gummies",   hand:40,  vel:100, cover:12,  lead:0,  st:"over",     po:0, inc:false, note:"Retired. No reorder. Pull it from the site when it hits zero" },
-    { sku:"Microdose capsules",       cat:"Capsules",  hand:0,   vel:0,   cover:0,   lead:42, st:"critical", po:10000, inc:false, note:"Never produced. $10,000 funds the first run, and the tubes are the long pole at four to five weeks from China" },
   ],
   // Redline alerts. The reorder point per SKU, where the alert goes, and who handles
   // the supplier message. The warehouse system is the system of record until this is wired.
@@ -307,13 +328,13 @@ const D = {
   // ---------------------------------------------------------------- GOALS
   goals: [
     { g:"Monthly revenue", now:"$49.9K", target:"$85K", pct:59, tone:"warn", bench:70, note:"Back to the November 2025 run rate, then past it" },
-    { g:"Fixed cost ratio", now:"34.0%", target:"15%", pct:44, tone:"bad", bench:100, note:"$16,973 against $49,889. Benchmark for DTC is about 15% of revenue" },
+    { g:"Fixed cost ratio", now:"34.2%", target:"15%", pct:44, tone:"bad", bench:100, note:"$17,058 against $49,889. Benchmark for DTC is about 15% of revenue" },
     { g:"Contribution margin", now:"$33.1K", target:"$53K", pct:63, tone:"warn", bench:null, note:"66.4% of revenue. The target is the same margin on the $85K revenue goal" },
     { g:"Chargeback rate", now:"0.42%", target:"under 1%", pct:100, tone:"good", bench:null, note:"Across all rails. Kurv runs highest at 0.67%" },
     { g:"Billing rate", now:"78.9%", target:"90%", pct:88, tone:"warn", bench:85, note:"206 of 261 rebill attempts cleared. The second retry recovers nothing" },
     { g:"Subscription attach", now:"10.4%", target:"25%", pct:42, tone:"bad", bench:30, note:"94 of 905 approved customers. The retention curve is being measured on a tenth of the base" },
     { g:"Days of cover, worst live SKU", now:"41d", target:"56d", pct:73, tone:"bad", bench:60, note:"Espresso, against a six to eight week box lead. Anything under lead time is a stockout waiting" },
-    { g:"Debt outstanding", now:"$87.4K", target:"$0", pct:30, tone:"warn", bench:50, note:"Still to pay, principal and interest. Down from $124,724. The buyout clears May 2027 on the schedule" },
+    { g:"Debt outstanding", now:"$89.0K", target:"$0", pct:30, tone:"warn", bench:50, note:"Still to pay, principal and interest. Down from $124,724. The buyout clears May 2027 on the schedule" },
   ],
 
   // ---------------------------------------------------------------- TEAM
@@ -375,7 +396,7 @@ const D = {
   ],
   dataHealth: [
     { n:"Mercury",        s:"live",    d:"Operating account and buckets" },
-    { n:"BlueBanc",       s:"live",    d:"Settlement account" },
+    { n:"Bluebanc",       s:"live",    d:"Settlement account" },
     { n:"Xero",           s:"live",    d:"78 accounts, all coded" },
     { n:"Order platform", s:"live",    d:"Orders, subscriptions, cascade" },
     { n:"Affiliate platform", s:"live", d:"Access received 24 August" },

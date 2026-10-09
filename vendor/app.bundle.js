@@ -29,7 +29,7 @@ const D = {
   }, {
     i: "dollar",
     l: "Cash",
-    v: "$68,751"
+    v: "$37,838"
   }, {
     i: "alert",
     l: "Strawberry Mango",
@@ -55,10 +55,30 @@ const D = {
   }, {
     i: "pulse",
     l: "Over break-even",
-    v: "$10,064",
+    v: "$9,936",
     tone: "good"
   }],
   // ---------------------------------------------------------------- BOARDROOM
+  // Urgent alerts sit above everything else because a breach on either one is a choke
+  // point rather than a KPI. Both are wired into the surface; neither has a live feed
+  // yet, and they say so rather than showing a reassuring zero.
+  urgent: [{
+    k: "cb",
+    label: "Chargeback early warning",
+    value: "No feed",
+    state: "pending",
+    source: "Disputifier",
+    need: "Account live, then its webhook pointed here",
+    note: "Alerts on a dispute before it becomes a chargeback, inside the window where it can still be answered. Nothing is being watched until the feed is connected."
+  }, {
+    k: "ody",
+    label: "Transactions on odymushrooms.com",
+    value: "No feed",
+    state: "pending",
+    source: "Second storefront order webhook",
+    need: "Order webhook from that storefront",
+    note: "Expected count is zero. Any transaction on that domain surfaces here the moment it lands."
+  }],
   unit: [{
     k: "rev",
     label: "Revenue · 30d",
@@ -80,27 +100,27 @@ const D = {
   }, {
     k: "cash",
     label: "Available cash",
-    value: "$68,751",
-    delta: 70.4,
-    sub: "floor $23,585",
-    tone: "good",
-    help: "Mercury $62,605 and Bluebanc $6,146, read at source 1 October. Free cash is what sits above the operating floor."
+    value: "$37,838",
+    delta: -6.3,
+    sub: "floor $28,400",
+    tone: "warn",
+    help: "Mercury $35,286 across every account and Bluebanc $2,552, read at source 11:24am PST on 8 October. $29,481 left in the first week, $20,000 to the card and $9,481 to the buyout, so the fall is paydown rather than burn. Most of what is left is earmarked in buckets: Operating itself holds $1,314 against a $28,400 floor."
   }, {
     k: "burn",
     label: "Operating profit · 30d",
-    value: "+$16,166",
-    delta: 4075,
+    value: "+$16,081",
+    delta: 4053,
     sub: "was +$387 in July",
     tone: "good",
     help: "Revenue less product cost, processing, fulfillment and fixed operating cost. Before debt service and owner distributions. Operating profit, not net profit."
   }, {
     k: "be",
     label: "Break-even",
-    value: "$39,825",
+    value: "$39,953",
     delta: 0,
-    sub: "running $10,064 above it",
+    sub: "running $9,936 above it",
     tone: "good",
-    help: "Fixed overhead of $16,973 plus the $9,481 debt payment, divided by a 66.43% contribution margin. No owner salary, because there isn't one."
+    help: "Fixed overhead of $17,058 plus the $9,481 debt payment, divided by a 66.43% contribution margin. No owner salary, because there isn't one."
   }, {
     k: "ncac",
     label: "Cost per new customer",
@@ -119,11 +139,11 @@ const D = {
   }, {
     k: "debt",
     label: "Still to pay",
-    value: "$87,377",
-    delta: -29.9,
+    value: "$89,020",
+    delta: -28.6,
     sub: "next $9,407 Nov 1",
     tone: "ink",
-    help: "Every dollar still leaving the bank on debt: $64,296 of remaining buyout payments, principal and interest, plus the $23,081 card balance. Principal alone is $76,414. There is one buyout note and the card, nothing else."
+    help: "Every dollar still leaving the bank on debt: $64,296 of remaining buyout payments across seven, principal and interest, plus the $24,723.52 card balance after the $20,000 payment on 8 October. Principal alone is $78,057. There is one buyout note and the card, nothing else."
   }],
   funnel: [{
     label: "Sessions",
@@ -218,118 +238,119 @@ const D = {
     tone: "warn"
   }],
   // ---------------------------------------------------------------- MONEY
+  // Balances read from the Mercury balance sheet at 8 October 2026. Bluebanc is the
+  // residual against the $37,837.85 two-bank total read at source the same morning.
   accounts: [{
     n: "Mercury · Operating",
-    c: "1000",
-    v: 23585,
-    role: "Holds the Q4 floor, spills to sweep",
-    tone: "accent"
-  }, {
-    n: "Mercury · Debt svc",
-    c: "1060",
-    v: 9407,
-    role: "Funds the next buyout payment",
+    c: "7698",
+    v: 1314,
+    role: "Holds the floor, spills to sweep daily",
     tone: "bad"
   }, {
-    n: "Mercury · Above the floor",
-    c: "-",
-    v: 29613,
-    role: "Not yet reported by bucket",
-    tone: "mute"
-  }, {
     n: "Mercury · Sweep",
-    c: "1010",
+    c: "4204",
     v: 0,
-    role: "Distributes to buckets daily",
+    role: "Distributes to the four buckets daily",
     tone: "info"
   }, {
-    n: "Mercury · Marketing",
-    c: "1040",
-    v: 0,
-    role: "35% of sweep",
-    tone: "violet"
-  }, {
     n: "Mercury · Inventory",
-    c: "1030",
-    v: 0,
-    role: "25% of sweep",
+    c: "4422",
+    v: 10276,
+    role: "38% of the sweep",
     tone: "good"
   }, {
-    n: "Mercury · Taxes",
-    c: "1050",
+    n: "Mercury · Debt svc",
+    c: "2360",
     v: 0,
-    role: "20% of sweep",
+    role: "34% of the sweep. Never used, and the buyout clears from here now",
+    tone: "bad"
+  }, {
+    n: "Mercury · Taxes",
+    c: "5543",
+    v: 8221,
+    role: "20% of the sweep",
     tone: "warn"
   }, {
-    n: "Mercury · Owner",
-    c: "1070",
-    v: 0,
-    role: "15% of sweep. The only owner comp there is",
-    tone: "accent"
-  }, {
     n: "Mercury · Reserve",
-    c: "1020",
-    v: 0,
-    role: "5%, caps at $141,754",
+    c: "6132",
+    v: 2055,
+    role: "8% of the sweep, caps at $142,264",
+    tone: "mute"
+  }, {
+    n: "Mercury · Marketing",
+    c: "9817",
+    v: 13347,
+    role: "Off the rule. Spends down from what it holds",
+    tone: "violet"
+  }, {
+    n: "Mercury · Owner",
+    c: "3654",
+    v: 66,
+    role: "Off the rule. Distributions pause while the buyout runs",
+    tone: "mute"
+  }, {
+    n: "Mercury · Clearing",
+    c: "-",
+    v: 7,
+    role: "Retired rail. Nothing routes here",
     tone: "mute"
   }, {
     n: "Bluebanc · Settlement",
     c: "1080",
-    v: 6146,
+    v: 2552,
     role: "Rails land here, sweeps to Mercury",
     tone: "info"
   }],
+  // Month-end Mercury cash, every account summed, from the Mercury balance sheet
+  // read 8 October 2026. Bluebanc isn't in it, so it reads lower than the two-bank
+  // total. The September jump is the $51,500 cut-over funding, not a trading month.
   cashTrail: [{
     m: "Apr",
-    v: 64317
+    v: 51922
   }, {
     m: "May",
-    v: 65504
+    v: 26611
   }, {
     m: "Jun",
-    v: 82956
+    v: 6921
   }, {
     m: "Jul",
-    v: 59962
+    v: 4704
   }, {
     m: "Aug",
-    v: 40347
+    v: 6365
   }, {
     m: "Sep",
-    v: 57370
+    v: 65912
   }, {
     m: "Oct",
-    v: 68751
+    v: 35286
   }],
+  // The four-way split set on 8 October 2026. Targets are the slice of a $26,304
+  // monthly spill. Marketing and Owner Distribution came off the rule.
   buckets: [{
-    n: "Marketing",
-    pct: 35,
-    target: 9206,
-    v: 0,
-    tone: "violet"
-  }, {
     n: "Inventory",
-    pct: 25,
-    target: 6576,
-    v: 0,
+    pct: 38,
+    target: 9996,
+    v: 10276,
     tone: "good"
+  }, {
+    n: "Debt service",
+    pct: 34,
+    target: 8943,
+    v: 0,
+    tone: "bad"
   }, {
     n: "Taxes",
     pct: 20,
     target: 5261,
-    v: 0,
+    v: 8221,
     tone: "warn"
   }, {
-    n: "Owner profit",
-    pct: 15,
-    target: 3946,
-    v: 0,
-    tone: "accent"
-  }, {
     n: "Reserve",
-    pct: 5,
-    target: 1315,
-    v: 0,
+    pct: 8,
+    target: 2104,
+    v: 2055,
     tone: "info"
   }],
   pl: [{
@@ -344,7 +365,31 @@ const D = {
     pct: 33.6,
     tone: "good",
     bench: "~40%",
-    d: "Product cost 17.8%, card processing 4.5%, fulfillment 11.3%"
+    d: "The three lines below, rolled up"
+  }, {
+    line: "Product cost",
+    v: 8880,
+    pct: 17.8,
+    tone: "good",
+    bench: "",
+    d: "Materials and manufacture. 82% blended gross margin, including free and comped product",
+    comp: true
+  }, {
+    line: "Card processing",
+    v: 2245,
+    pct: 4.5,
+    tone: "warn",
+    bench: "2-3%",
+    d: "2% discount rate plus interchange plus $0.30 a transaction, all in across three rails",
+    comp: true
+  }, {
+    line: "Fulfillment",
+    v: 5625,
+    pct: 11.3,
+    tone: "warn",
+    bench: "8-12%",
+    d: "3PL at about $10.01 an order all in, plus prep. Scales with orders, not with revenue",
+    comp: true
   }, {
     line: "Marketing",
     v: 0,
@@ -362,15 +407,15 @@ const D = {
     sub: true
   }, {
     line: "OPEX",
-    v: 16973,
-    pct: 34.0,
+    v: 17058,
+    pct: 34.2,
     tone: "bad",
     bench: "~15%",
-    d: "Fixed operating cost, confirmed line by line and closed out 1 October"
+    d: "Fixed operating cost, confirmed line by line and closed out 1 October. Figma and DocuSign were added 8 October"
   }, {
     line: "Operating profit",
-    v: 16166,
-    pct: 32.4,
+    v: 16081,
+    pct: 32.2,
     tone: "good",
     bench: "15-20%",
     d: "Contribution margin less OPEX. Before debt service and distributions",
@@ -382,15 +427,15 @@ const D = {
     d: "Gross margin less card processing and fulfillment. Both scale with revenue, so neither sits in the fixed block"
   }, {
     l: "Fixed cash out a month",
-    v: "$26,454",
-    d: "Fixed overhead $16,973 plus the $9,481 debt payment. No owner salary, because there isn't one"
+    v: "$26,539",
+    d: "Fixed overhead $17,058 plus the $9,481 debt payment. No owner salary, because there isn't one"
   }, {
     l: "Break-even revenue",
-    v: "$39,825",
+    v: "$39,953",
     d: "Fixed cash out divided by contribution margin"
   }, {
     l: "Running above it",
-    v: "$10,064",
+    v: "$9,936",
     d: "Against $49,889 collected in the 30 days to 5 September"
   }],
   debt: [{
@@ -402,49 +447,49 @@ const D = {
     tone: "bad"
   }, {
     n: "Chase card",
-    v: 23081,
-    principal: 23081,
-    note: "$46,700 limit, 49% used, $2,600 a month from the debt bucket. Balance as of 4 September",
-    payoff: "Jun 15, 2027",
+    v: 24724,
+    principal: 24724,
+    note: "$46,700 limit, 53% used. Current charges paid in full monthly from 8 October. The legacy balance is held and decided in January",
+    payoff: "No date set",
     tone: "warn"
   }],
   // Two debts, one of each kind, and nothing else. An $80,000 undated obligation carried here
   // through September was the buyout note counted twice. Removed 2 October on DB's confirmation.
   debtNote: {
-    pay: 87377,
-    principal: 76414,
+    pay: 89020,
+    principal: 78057,
     interest: 10963,
     startPay: 124724,
     startPrincipal: 124724,
     why: "Two numbers, both real. Still to pay is every dollar that leaves the bank, so it carries the interest the buyout has left to run. Principal is what the balance sheet shows. The gap between them is $10,963 of interest across seven payments."
   },
   // combined buyout and card balance at each month end, on the schedule and the card plan
+  // Buyout note only, month end, straight off the payment schedule. The card isn't in it:
+  // from 8 October only that month's charges get paid, and what to do with the $24,724
+  // legacy balance is decided in January, so there is no card path to draw yet.
   payoffPath: [{
     m: "Oct",
-    v: 84776
+    v: 64296
   }, {
     m: "Nov",
-    v: 72770
+    v: 54889
   }, {
     m: "Dec",
-    v: 60837
+    v: 45556
   }, {
     m: "Jan",
-    v: 48977
+    v: 36296
   }, {
     m: "Feb",
-    v: 37192
+    v: 27111
   }, {
     m: "Mar",
-    v: 25481
+    v: 18000
   }, {
     m: "Apr",
-    v: 13844
+    v: 8963
   }, {
     m: "May",
-    v: 2281
-  }, {
-    m: "Jun",
     v: 0
   }],
   schedule: [{
@@ -928,30 +973,6 @@ const D = {
     units: 55,
     rev: null,
     trend: [14, 24, 35, 45, 55]
-  }, {
-    sku: "Sea Salt dark chocolate",
-    cat: "Chocolate",
-    status: "waiting",
-    price: 69,
-    cost: 11.65,
-    costHigh: 11.65,
-    basis: "supplier buildup, 8 pieces",
-    margin: 83.1,
-    units: 0,
-    rev: null,
-    trend: [0, 0, 0, 0, 0]
-  }, {
-    sku: "Microdose capsules",
-    cat: "Capsules",
-    status: "never made",
-    price: null,
-    cost: 9.67,
-    costHigh: 10.37,
-    basis: "supplier buildup",
-    margin: null,
-    units: 0,
-    rev: null,
-    trend: [0, 0, 0, 0, 0]
   }],
   // Revenue per product is deliberately null. Units come from the warehouse read and revenue from the
   // bank, and the two don't reconcile: 1,353 units in 30 days at the $72.66 average is about $98,000
@@ -1057,9 +1078,9 @@ const D = {
       sub: "-",
       tone: "mute"
     }, {
-      label: "Planned Q4 budget",
-      value: "$13,125",
-      sub: "35% of sweep",
+      label: "Marketing on hand",
+      value: "$13,347",
+      sub: "off the rule, spends down",
       tone: "violet"
     }],
     accounts: [{
@@ -1212,17 +1233,6 @@ const D = {
     po: 0,
     inc: false,
     note: "Retired. No reorder. Pull it from the site when it hits zero"
-  }, {
-    sku: "Microdose capsules",
-    cat: "Capsules",
-    hand: 0,
-    vel: 0,
-    cover: 0,
-    lead: 42,
-    st: "critical",
-    po: 10000,
-    inc: false,
-    note: "Never produced. $10,000 funds the first run, and the tubes are the long pole at four to five weeks from China"
   }],
   // Redline alerts. The reorder point per SKU, where the alert goes, and who handles
   // the supplier message. The warehouse system is the system of record until this is wired.
@@ -1365,12 +1375,12 @@ const D = {
     note: "Back to the November 2025 run rate, then past it"
   }, {
     g: "Fixed cost ratio",
-    now: "34.0%",
+    now: "34.2%",
     target: "15%",
     pct: 44,
     tone: "bad",
     bench: 100,
-    note: "$16,973 against $49,889. Benchmark for DTC is about 15% of revenue"
+    note: "$17,058 against $49,889. Benchmark for DTC is about 15% of revenue"
   }, {
     g: "Contribution margin",
     now: "$33.1K",
@@ -1413,7 +1423,7 @@ const D = {
     note: "Espresso, against a six to eight week box lead. Anything under lead time is a stockout waiting"
   }, {
     g: "Debt outstanding",
-    now: "$87.4K",
+    now: "$89.0K",
     target: "$0",
     pct: 30,
     tone: "warn",
@@ -1627,7 +1637,7 @@ const D = {
     s: "live",
     d: "Operating account and buckets"
   }, {
-    n: "BlueBanc",
+    n: "Bluebanc",
     s: "live",
     d: "Settlement account"
   }, {
@@ -1742,9 +1752,21 @@ const D2 = {
       tone: "warn",
       help: "The most you can pay for a customer and still be profitable inside 90 days."
     }, {
-      label: "Planned Q4 budget",
-      value: "$13,125",
-      sub: "35% of the sweep",
+      label: "MER",
+      value: "-",
+      sub: "no spend to measure",
+      tone: "mute",
+      help: "Marketing efficiency ratio. Total revenue divided by total marketing spend across every channel, paid and unpaid. It counts new and repeat revenue together, so it says whether the whole marketing engine is efficient. Most DTC brands run 3.0x to 5.0x, but the real target depends on gross margin. Blank while spend is zero."
+    }, {
+      label: "aMER",
+      value: "-",
+      sub: "no spend to measure",
+      tone: "mute",
+      help: "Acquisition MER. Revenue from first-time customers only, divided by total marketing spend. It says whether marketing pays for itself on acquisition alone. MER can look healthy while aMER is under 1.0, which means repeat revenue is hiding an acquisition loss. Blank while spend is zero."
+    }, {
+      label: "Marketing on hand",
+      value: "$13,347",
+      sub: "off the rule, spends down",
       tone: "violet"
     }, {
       label: "Channels live",
@@ -2029,7 +2051,14 @@ const D2 = {
       value: "112",
       sub: "4.2% of orders",
       tone: "warn",
-      delta: 14.2
+      delta: 14.2,
+      help: "Orders that redeemed a discount code. A code is not a referral link: anyone who has seen the code can use it, so this measures discount reach rather than who referred whom."
+    }, {
+      label: "Customer referral links",
+      value: "Not tracked",
+      sub: "needs a per-customer link",
+      tone: "mute",
+      help: "A referral link is unique to one customer, so it attributes a new order to the customer who sent it and a code cannot. Nothing issues or tracks these today. It needs a link generated per customer at checkout and the referrer carried through on the order."
     }, {
       label: "Repeat rate",
       value: "22.8%",
@@ -2252,11 +2281,6 @@ const D2 = {
       prev: 8.16,
       basis: "supplier buildup"
     }, {
-      n: "Microdose capsules",
-      cur: 10.37,
-      prev: 8.37,
-      basis: "supplier buildup"
-    }, {
       n: "Love gummies",
       cur: null,
       prev: null,
@@ -2289,6 +2313,14 @@ const D2 = {
       onPlatform: 223,
       invisible: 125,
       pct: 35.9
+    },
+    // The gap runs both ways. Orders that never reached the warehouse are the dangerous
+    // direction: the customer paid, nothing shipped, and the first anyone hears of it is a
+    // dispute. Nothing measures this today, so the tile says so rather than showing a zero.
+    unshipped: {
+      value: "Not measured",
+      need: "A daily match of order platform orders against warehouse shipments, by order number",
+      note: "Orders placed on the order platform that never landed at the 3PL, so they were paid for and never shipped. At least one of these became a chargeback. The reverse of the invisible third, and the one that costs a customer."
     },
     breakdown: [{
       m: "Wholesale",
@@ -3048,8 +3080,8 @@ const D4 = {
   // ---------------------------------------------------------------- CASH FORECAST
   // Thirteen weeks from the current balance. Inflows net of fees and reserve.
   forecast: {
-    open: 68751,
-    floor: 23585,
+    open: 37838,
+    floor: 28400,
     weeks: [{
       w: "Sep 21",
       inn: 10840,
@@ -3140,7 +3172,7 @@ const D4 = {
   transactions: [{
     d: "Sep 17",
     desc: "Rail A settlement",
-    acct: "BlueBanc · Settlement",
+    acct: "Bluebanc · Settlement",
     cat: "Sales",
     amt: 1624,
     st: "matched"
@@ -3154,7 +3186,7 @@ const D4 = {
   }, {
     d: "Sep 16",
     desc: "Rail B settlement",
-    acct: "BlueBanc · Settlement",
+    acct: "Bluebanc · Settlement",
     cat: "Sales",
     amt: 1138,
     st: "matched"
@@ -3175,14 +3207,14 @@ const D4 = {
   }, {
     d: "Sep 15",
     desc: "Rail C settlement",
-    acct: "BlueBanc · Settlement",
+    acct: "Bluebanc · Settlement",
     cat: "Sales",
     amt: 612,
     st: "matched"
   }, {
     d: "Sep 15",
     desc: "Rail C reserve hold",
-    acct: "BlueBanc · Settlement",
+    acct: "Bluebanc · Settlement",
     cat: "Processing",
     amt: -61,
     st: "matched"
@@ -3203,7 +3235,7 @@ const D4 = {
   }, {
     d: "Sep 14",
     desc: "Refund, order 48213",
-    acct: "BlueBanc · Settlement",
+    acct: "Bluebanc · Settlement",
     cat: "Refunds",
     amt: -69,
     st: "matched"
@@ -3231,7 +3263,7 @@ const D4 = {
   }, {
     d: "Sep 11",
     desc: "Unknown debit",
-    acct: "BlueBanc · Settlement",
+    acct: "Bluebanc · Settlement",
     cat: "Uncategorized",
     amt: -214,
     st: "open"
@@ -3436,7 +3468,7 @@ const D4 = {
     every: "15 min",
     s: "live"
   }, {
-    n: "BlueBanc",
+    n: "Bluebanc",
     last: "2 min ago",
     every: "15 min",
     s: "live"
@@ -4951,7 +4983,7 @@ const COST = {
     "unquoted": ["12-piece cardbox and individual wraps", "A manufacturer quote for a 12-piece run", "Minimum order quantities", "Production timelines"],
     "note": "Love's actives are $3.24 a unit on the MUD route, against $2.31 for a gummy tin. The $10,000 a kilo figure reads prohibitive and isn't: the dose is 27 mg a piece. What gates the reorder is a quote for a 12-piece cardbox run, which nobody has. Borrowing the tin's $8.16 would be wrong on piece count, packaging and actives."
   },
-  "lineup": [["Mint milk chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Toffee milk chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Dubai milk chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Espresso dark chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Strawberry Mango gummies", "Gummies", "Live", "Manufacturer", "$8.16 to $8.64"], ["Blue Raspberry gummies", "Gummies", "Live", "Manufacturer", "$8.16 to $8.64"], ["Love gummies", "Gummies", "Reorder gated on cash flow", "Manufacturer", "Actives $3.24. Build unquoted"], ["Wild Cherry gummies", "Gummies", "Retired", "Manufacturer", "$8.16, for remaining sales"], ["Sea Salt dark chocolate", "Chocolate", "Tested, waiting on stock", "Kitchen", "$10.54 to $11.65"], ["Microdose capsules", "Capsules", "Never produced", "Manufacturer", "$9.67 to $10.37"]]
+  "lineup": [["Mint milk chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Toffee milk chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Dubai milk chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Espresso dark chocolate", "Chocolate", "Live", "Kitchen", "$10.54 to $11.65"], ["Strawberry Mango gummies", "Gummies", "Live", "Manufacturer", "$8.16 to $8.64"], ["Blue Raspberry gummies", "Gummies", "Live", "Manufacturer", "$8.16 to $8.64"], ["Love gummies", "Gummies", "Reorder gated on cash flow", "Manufacturer", "Actives $3.24. Build unquoted"], ["Wild Cherry gummies", "Gummies", "Retired", "Manufacturer", "$8.16, for remaining sales"]]
 };
 
 /* ==== period.jsx ==== */
@@ -5058,6 +5090,12 @@ function applyPeriod(label, customDays) {
       "OPEX": opex,
       "Operating profit": op
     };
+    // The three component rows under cost of delivery aren't in the daily table, so they
+    // scale against their own share of the 30 day cost of delivery and keep the rollup honest.
+    const baseCod = PERIOD_BASE.D.pl.find(r => r.line === "Cost of delivery").v;
+    PERIOD_BASE.D.pl.filter(r => r.comp).forEach(r => {
+      set[r.line] = baseCod ? pRound(cod * (r.v / baseCod)) : 0;
+    });
     D.pl.forEach(r => {
       r.v = set[r.line];
       r.pct = rev ? +(r.v / rev * 100).toFixed(1) : 0;
@@ -6278,6 +6316,124 @@ function _extends() { return _extends = Object.assign ? Object.assign.bind() : f
 // pages-1.jsx, Boardroom, Goals, Org, Project Board, Money pages
 
 /* ============================== BOARDROOM ============================== */
+/* Urgent alerts. Highest position on the Boardroom by design: a breach on either row stops
+   the business rather than slowing it, so neither sits below a KPI grid. A row with no feed
+   says so instead of showing a reassuring zero. */
+function UrgentAlerts() {
+  const rows = D.urgent || [];
+  if (!rows.length) return null;
+  const live = rows.filter(r => r.state === "breach").length;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SecLabel, {
+    icon: "alert",
+    right: live ? `${live} live` : "no feed connected",
+    help: "Two things that can stop this business rather than slow it down. They sit above every other number on purpose."
+  }, "Urgent"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 12,
+      marginBottom: 26
+    }
+  }, rows.map(r => {
+    const breach = r.state === "breach";
+    const tone = breach ? "bad" : "info";
+    return /*#__PURE__*/React.createElement(Card, {
+      key: r.k,
+      pad: 0,
+      style: {
+        overflow: "hidden",
+        borderColor: breach ? T("bad") : "var(--rule)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "stretch"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 5,
+        background: T(tone),
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "15px 18px",
+        display: "flex",
+        gap: 18,
+        alignItems: "center",
+        flexWrap: "wrap",
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 0,
+        flex: "1 1 280px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        marginBottom: 4,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement(Ico, {
+      n: "alert",
+      s: 13
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13.5,
+        fontWeight: 650,
+        color: "var(--ink)"
+      }
+    }, r.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        fontWeight: 700,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        padding: "2px 7px",
+        borderRadius: 4,
+        background: TT(tone),
+        color: T(tone)
+      }
+    }, r.value)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--ink-soft)",
+        lineHeight: 1.45
+      }
+    }, r.note)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: "0 0 auto",
+        textAlign: "right",
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9.5,
+        fontWeight: 700,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        color: "var(--ink-mute)"
+      }
+    }, "Source"), /*#__PURE__*/React.createElement("div", {
+      className: "mono",
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: "var(--ink)"
+      }
+    }, r.source), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--ink-mute)",
+        marginTop: 3,
+        maxWidth: 240
+      }
+    }, r.need)))));
+  })));
+}
 function Boardroom({
   go,
   period
@@ -6288,7 +6444,7 @@ function Boardroom({
     title: "Boardroom",
     sub: `The whole business in one view · ${period}`,
     meta: "Live across cash, revenue, margin, subscriptions, inventory and the team."
-  }), /*#__PURE__*/React.createElement(SecLabel, {
+  }), /*#__PURE__*/React.createElement(UrgentAlerts, null), /*#__PURE__*/React.createElement(SecLabel, {
     icon: "dollar",
     help: "The eight numbers that describe whether this business is working."
   }, "Unit economics \xB7 ", period), /*#__PURE__*/React.createElement(G, {
@@ -6436,7 +6592,7 @@ function Boardroom({
     pad: 20
   }, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "money",
-    right: "Mercury + BlueBanc"
+    right: "Mercury + Bluebanc"
   }, "Cash position"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -6445,11 +6601,11 @@ function Boardroom({
       marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement(Donut, {
-    v: 68751,
-    max: 141754,
+    v: 37838,
+    max: 142264,
     size: 96,
     tone: "good",
-    label: "$68.8K",
+    label: "$37.8K",
     sub: "on hand"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6458,7 +6614,7 @@ function Boardroom({
       gap: 10,
       minWidth: 0
     }
-  }, [["Operating floor", "$23,585", "accent"], ["Free above floor", "$45,166", "good"], ["Card headroom", "$23,619", "info"]].map(([l, v, t]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Operating balance", "$1,314", "bad"], ["Its floor", "$28,400", "accent"], ["Card owed", "$24,724", "info"]].map(([l, v, t]) => /*#__PURE__*/React.createElement("div", {
     key: l
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6492,7 +6648,7 @@ function DistributionsTrend({
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "money",
     right: `${fmt.usd(ytd)} this year`,
-    help: "What you've taken out of the business as owner, by month. Before the Sep 15 cut-over these were draws taken whenever cash allowed. From the cut-over, the Owner profit bucket takes 15% of every sweep."
+    help: "What you've taken out of the business as owner, by month. Before the Sep 15 cut-over these were draws taken whenever cash allowed. From 8 October the Owner bucket is off the sweep rule and distributions pause while the buyout runs."
   }, "Distributions trend"), /*#__PURE__*/React.createElement(BarChart, {
     data: d.map((r, i) => ({
       ...r,
@@ -6505,7 +6661,7 @@ function DistributionsTrend({
       color: "var(--ink-mute)",
       marginTop: 12
     }
-  }, paid, " of ", d.length, " months paid anything, and no two the same. September is month to date. From the cut-over the Owner profit bucket fills on every sweep, so this line should steady."));
+  }, paid, " of ", d.length, " months paid anything, and no two the same. September is month to date. From 8 October the Owner bucket is off the sweep rule, so this line stays flat until the buyout clears."));
 }
 
 /* decision velocity: decisions made plus tasks completed each week, read from the score log */
@@ -6834,31 +6990,31 @@ function Cash() {
     }
   }, /*#__PURE__*/React.createElement(KPI, {
     label: "Cash on hand",
-    value: "$68,751",
-    tone: "ink",
+    value: "$37,838",
+    tone: "warn",
     sub: "two banks",
-    delta: 70.4,
-    help: "Mercury $62,605 and Bluebanc $6,146, read at source 1 October."
+    help: "Mercury $35,286 across every account and Bluebanc $2,552, read at source 8 October 11:24am PST."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Operating floor",
-    value: "$23,585",
+    value: "$28,400",
     tone: "accent",
-    sub: "1.25x the Q4 base",
-    help: "Fixed overhead plus card processing, times 1.25 for Q4. It rises to $28,302 from January."
+    sub: "a 2.8% cushion",
+    help: "Operating's real monthly outflow is $27,631: direct ACH overhead, the monthly card payment, card processing at the measured 4.5%, and professional services. The floor is a 2.8% cushion on top of it."
   }), /*#__PURE__*/React.createElement(KPI, {
-    label: "Free above floor",
-    value: "$17,847",
-    tone: "good",
-    sub: "what buckets can take"
+    label: "Operating holds",
+    value: "$1,314",
+    tone: "bad",
+    sub: "short of the floor by $27,086",
+    help: "Everything else sits in buckets that are already earmarked. Rule 2 tops Operating up from Reserve, and Reserve holds $2,055, so it covers $2,055 of the gap and no more until it fills."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Card headroom",
-    value: "$23,619",
+    value: "$21,976",
     tone: "info",
-    sub: "49% utilized",
-    delta: 4623
+    sub: "53% used",
+    help: "A $46,700 limit against the $24,724 the issuer showed DB on 8 October, after that morning's $20,000 payment. The books read $24,231 and the books are incomplete."
   })), v === "buckets" && /*#__PURE__*/React.createElement(G, {
-    c: 5,
-    name: "5",
+    c: 4,
+    name: "4",
     gap: 13,
     style: {
       marginBottom: 24
@@ -6893,8 +7049,8 @@ function Cash() {
       color: "var(--ink-mute)",
       marginBottom: 9
     }
-  }, "of ", fmt.usd(b.target)), /*#__PURE__*/React.createElement(Bar, {
-    pct: b.v / b.target * 100,
+  }, "fills ", fmt.usd(b.target), " a month"), /*#__PURE__*/React.createElement(Bar, {
+    pct: Math.min(100, b.v / b.target * 100),
     tone: b.tone
   })))), v === "accounts" && /*#__PURE__*/React.createElement(Card, {
     pad: 0,
@@ -6937,7 +7093,7 @@ function Cash() {
       width: 130
     }
   }, /*#__PURE__*/React.createElement(Bar, {
-    pct: a.v / 68751 * 100,
+    pct: a.v / 37838 * 100,
     tone: a.tone
   })))))))), v === "flow" && /*#__PURE__*/React.createElement(Card, {
     pad: 24,
@@ -6951,14 +7107,14 @@ function Cash() {
     d: "All three rails land in Bluebanc, then sweep to Mercury"
   }, {
     l: "Operating fills to the floor",
-    v: "$23,585",
+    v: "$28,400",
     t: "accent",
-    d: "Rent, payroll, software, support"
+    d: "Rent, payroll, software, support, card payment, processing"
   }, {
     l: "Everything above sweeps",
-    v: "$24,314",
+    v: "$26,304",
     t: "good",
-    d: "Splits five ways on the percentages you set"
+    d: "Splits four ways on the percentages set 8 October"
   }].map((r, i) => /*#__PURE__*/React.createElement("div", {
     key: i
   }, /*#__PURE__*/React.createElement("div", {
@@ -6997,8 +7153,8 @@ function Cash() {
       padding: "5px 0"
     }
   }, "\u2193"))), /*#__PURE__*/React.createElement(G, {
-    c: 5,
-    name: "5",
+    c: 4,
+    name: "4",
     gap: 9
   }, D.buckets.map(b => /*#__PURE__*/React.createElement("div", {
     key: b.n,
@@ -7043,7 +7199,8 @@ function Cash() {
     pad: 20
   }, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "chart",
-    right: "seven months"
+    right: "Mercury, month end",
+    help: "Every Mercury account summed at each month end, from the Mercury balance sheet read 8 October. Bluebanc isn't in it. The September jump is the $51,500 that funded the cut-over, not a trading month."
   }, "Cash trail"), /*#__PURE__*/React.createElement(Line, {
     data: D.cashTrail,
     h: 170,
@@ -7054,7 +7211,7 @@ function Cash() {
   }, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "clock",
     right: "next 30 days"
-  }, "Committed outflows"), [["Next 7 days", 6420, "warn", "Rent, software, support"], ["8 to 14 days", 3100, "info", "3PL invoice, ingredients"], ["15 to 30 days", 9481, "bad", "Buyout payment Oct 1"]].map(([l, v, t, d]) => /*#__PURE__*/React.createElement("div", {
+  }, "Committed outflows"), [["Next 7 days", 6420, "warn", "Rent, software, support"], ["8 to 14 days", 3100, "info", "3PL invoice, ingredients"], ["15 to 30 days", 9407, "bad", "Buyout payment Nov 1"]].map(([l, v, t, d]) => /*#__PURE__*/React.createElement("div", {
     key: l,
     style: {
       marginBottom: 14
@@ -7120,7 +7277,9 @@ function PL() {
     }
   }, /*#__PURE__*/React.createElement("td", {
     style: {
-      fontWeight: r.sub ? 700 : 500
+      fontWeight: r.sub ? 700 : r.comp ? 400 : 500,
+      paddingLeft: r.comp ? 26 : undefined,
+      color: r.comp ? "var(--ink-soft)" : undefined
     }
   }, r.line), /*#__PURE__*/React.createElement("td", {
     className: "num",
@@ -7234,7 +7393,7 @@ const FIXED = [{
   tone: "good"
 }, {
   m: "Oct",
-  v: 16973,
+  v: 17058,
   rev: 49889,
   tone: "good",
   proj: true
@@ -7413,27 +7572,27 @@ function Debt() {
     }
   }, /*#__PURE__*/React.createElement(KPI, {
     label: "Still to pay",
-    value: "$87,377",
+    value: "$89,020",
     tone: "ink",
-    delta: -29.9,
+    delta: -28.6,
     sub: "principal and interest",
-    help: "Every dollar still leaving the bank. Principal alone is $76,414, and the $10,963 gap is interest the buyout has left to run."
+    help: "Every dollar still leaving the bank. Principal alone is $78,057, and the $10,963 gap is interest the buyout has left to run."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Next payment",
     value: "$9,407",
     tone: "warn",
     sub: "Nov 1 \xB7 from debt bucket"
   }), /*#__PURE__*/React.createElement(KPI, {
-    label: "Paid off by",
-    value: "Jun 15, 2027",
+    label: "Buyout clears",
+    value: "May 1, 2027",
     tone: "good",
-    sub: "buyout May 1 \xB7 card Jun 15",
-    help: "The date the buyout note and the card both reach zero, on the payment schedule and the card plan."
+    sub: "card has no date",
+    help: "The buyout note reaches zero on the payment schedule. The card has no payoff date, because from 8 October only the current month is paid and the legacy balance is decided in January."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Card utilization",
-    value: "49%",
+    value: "53%",
     tone: "warn",
-    sub: "$23,081 of $46,700"
+    sub: "$24,724 of $46,700"
   })), /*#__PURE__*/React.createElement(G, {
     c: 2,
     name: "2h",
@@ -7468,7 +7627,7 @@ function Debt() {
       color: T(d.tone)
     }
   }, fmt.usd(d.v))), /*#__PURE__*/React.createElement(Bar, {
-    pct: d.v / 87377 * 100,
+    pct: d.v / 89020 * 100,
     tone: d.tone
   }), /*#__PURE__*/React.createElement("p", {
     style: {
@@ -7547,7 +7706,7 @@ function Debt() {
       marginTop: 4,
       marginBottom: 14
     }
-  }, [["Still to pay", "$87,377", "Every dollar that leaves the bank. Buyout payments plus the card balance", "ink"], ["Principal outstanding", "$76,414", "What the balance sheet shows. $53,333 on the buyout, $23,081 on the card", "accent"], ["Interest still to run", "$10,963", "The gap between the two, across seven buyout payments", "warn"]].map(([l, v, d, t]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Still to pay", "$89,020", "Every dollar that leaves the bank. Buyout payments plus the card balance", "ink"], ["Principal outstanding", "$78,057", "$53,333 on the buyout and $24,724 on the card, after the $20,000 payment on 8 October", "accent"], ["Interest still to run", "$10,963", "The gap between the two, across seven buyout payments", "warn"]].map(([l, v, d, t]) => /*#__PURE__*/React.createElement("div", {
     key: l,
     style: {
       background: "var(--surface-3)",
@@ -7584,8 +7743,8 @@ function Debt() {
     }
   }, /*#__PURE__*/React.createElement(SecLabel, {
     icon: "clock",
-    right: "buyout and card, month end",
-    help: "What's left on the buyout note and the card after each month's payments."
+    right: "buyout note, month end",
+    help: "What's left on the buyout note after each scheduled payment. The card isn't in it."
   }, "Road to zero"), /*#__PURE__*/React.createElement(Line, {
     data: D.payoffPath,
     h: 180,
@@ -7598,7 +7757,7 @@ function Debt() {
       color: "var(--ink-mute)",
       marginTop: 12
     }
-  }, "$87,377 still to pay across both. The buyout clears May 1, 2027 and the card on June 15, 2027 at $2,600 a month. Anything extra onto the card pulls that date in.")));
+  }, "The buyout clears May 1, 2027 and 34% of every sweep funds it. The $24,724 on the card sits outside this line: from 8 October only that month's charges get paid, and the legacy balance is decided in January against Q4 actuals.")));
 }
 
 /* ============================== RAILS ============================== */
@@ -7610,7 +7769,7 @@ function Rails() {
     className: "page-in"
   }, /*#__PURE__*/React.createElement(PageHead, {
     title: "Payment rails",
-    sub: "All four processors, gross in, fees out, net to bank.",
+    sub: "All three processors, gross in, fees out, net to bank.",
     meta: "Nothing hides inside a deposit."
   }), /*#__PURE__*/React.createElement(G, {
     c: 4,
@@ -7627,7 +7786,7 @@ function Rails() {
     value: fmt.usd(tf),
     tone: "bad",
     sub: fmt.pct(tf / tg * 100, 2) + " all in",
-    help: "Against a 1.5% discount rate. The gap is interchange."
+    help: "The discount rate is 2%, plus interchange, plus $0.30 a transaction. The all-in figure is what those three come to together, so it moves with average order value as well as with mix."
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Held in reserve",
     value: fmt.usd(tr),
@@ -7739,10 +7898,18 @@ function Rails() {
       color: "var(--ink-mute)",
       fontSize: 11
     }
-  }, "-")))))))), /*#__PURE__*/React.createElement(Note, {
+  }, "-")))))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Note, {
     tone: "warn",
     icon: "!"
-  }, "The Kurv rail is capped at $25,000 in any 30 day period, contractual, with termination rights on breach. Across all rails you top out near $125,000 a month. A $3M run rate needs about $250,000."));
+  }, "The Kurv rail is capped at $25,000 in any 30 day period, contractual, with termination rights on breach. Across all rails you top out near $125,000 a month. A $3M run rate needs about $250,000."), /*#__PURE__*/React.createElement(Note, {
+    tone: "info",
+    icon: "i"
+  }, "How the cost is built: a 2% discount rate, plus interchange, plus $0.30 a transaction. The $0.30 is a flat fee, so it costs more as a share of a small order than a large one, which is why the all-in rate moves with average order value. The per-rail all-in figures above run on one blended rate rather than three measured ones, so treat the split between rails as indicative until each rail's statement is loaded.")));
 }
 
 /* ==== pages-2.jsx ==== */
@@ -8009,9 +8176,9 @@ function Wholesale() {
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in"
   }, /*#__PURE__*/React.createElement(PageHead, {
-    title: "Wholesale and clinics",
-    sub: "The emerging channel. Commission-only rep, cold outbound.",
-    meta: "Wholesale orders never touch the order platform, which is why they're invisible in revenue."
+    title: "Wholesale/Manual",
+    sub: "Wholesale, clinics, reships, samples and comps. Everything that ships without a normal checkout.",
+    meta: "These orders never touch the order platform, which is why they're invisible in revenue. Retail value here is a placeholder until each one is raised against a paid invoice."
   }), /*#__PURE__*/React.createElement(G, {
     c: 4,
     style: {
@@ -8087,8 +8254,8 @@ function Attribution() {
   return /*#__PURE__*/React.createElement("div", {
     className: "page-in"
   }, /*#__PURE__*/React.createElement(PageHead, {
-    title: "Attribution",
-    sub: "Which channel earned which order.",
+    title: "Creators",
+    sub: "Which creator and which channel earned which order.",
     meta: "Currently the weakest system in the business."
   }), /*#__PURE__*/React.createElement(Card, {
     pad: 26,
@@ -9139,8 +9306,8 @@ function MktPerf() {
       onChange: setTab
     })
   }), /*#__PURE__*/React.createElement(G, {
-    c: 6,
-    name: "6",
+    c: 4,
+    name: "4",
     style: {
       marginBottom: 24
     }
@@ -9535,8 +9702,8 @@ function Retention() {
     title: "Retention",
     sub: r.note
   }), /*#__PURE__*/React.createElement(G, {
-    c: 6,
-    name: "6",
+    c: 4,
+    name: "4",
     style: {
       marginBottom: 24
     }
@@ -9822,8 +9989,8 @@ function Fulfillment() {
     className: "page-in"
   }, /*#__PURE__*/React.createElement(PageHead, {
     title: "Fulfillment",
-    sub: "What ships, and how much of it your systems can see.",
-    meta: "Moved here from Revenue. It is an operations problem, not a revenue one."
+    sub: "What ships, what doesn't, and how much of it your systems can see.",
+    meta: "This page exists to surface the gap between what you collected and what you shipped. It runs in both directions."
   }), /*#__PURE__*/React.createElement(G, {
     c: 4,
     style: {
@@ -9840,16 +10007,25 @@ function Fulfillment() {
     tone: "good",
     sub: "64.1%"
   }), /*#__PURE__*/React.createElement(KPI, {
-    label: "Never touched it",
+    label: "Shipped, never on the platform",
     value: fmt.n(f.shipments.invisible),
     tone: "bad",
-    sub: fmt.pct(f.shipments.pct)
+    sub: fmt.pct(f.shipments.pct),
+    help: "Stock left the building and no sale was recorded. Wholesale, samples, reships and comps."
   }), /*#__PURE__*/React.createElement(KPI, {
-    label: "Shipped same day",
-    value: "78%",
-    tone: "warn",
-    sub: "target 90%"
-  })), /*#__PURE__*/React.createElement(G, {
+    label: "Paid, never shipped",
+    value: f.unshipped.value,
+    tone: "mute",
+    sub: "no match running",
+    help: f.unshipped.note + " " + f.unshipped.need
+  })), /*#__PURE__*/React.createElement(Note, {
+    tone: "bad",
+    icon: "!"
+  }, "The two middle tiles are the same failure facing opposite ways. Stock that ships without a sale makes revenue look small and inventory look wrong. An order that is paid for and never ships makes revenue look fine and loses the customer, usually as a dispute rather than a complaint. Only the first one is measured today. ", f.unshipped.need, " closes the second."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 22
+    }
+  }), /*#__PURE__*/React.createElement(G, {
     c: 2,
     name: "2h",
     gap: 16,
@@ -11045,9 +11221,9 @@ function BoardFinancials({
     onClick: () => go("pl")
   }), /*#__PURE__*/React.createElement(KPI, {
     label: "Available cash",
-    value: "$68,751",
-    tone: "good",
-    sub: "floor $23,585",
+    value: "$37,838",
+    tone: "warn",
+    sub: "floor $28,400",
     onClick: () => go("cash")
   })), /*#__PURE__*/React.createElement(G, {
     c: 2,
@@ -11127,9 +11303,9 @@ function BoardFinancials({
   }, "Cash on hand"), /*#__PURE__*/React.createElement(Line, {
     data: D.cashTrail,
     h: 100,
-    tone: "good",
+    tone: "warn",
     vf: fmt.k,
-    target: 23585,
+    target: 28400,
     tLabel: "Floor"
   }))), /*#__PURE__*/React.createElement(G, {
     c: 3,
@@ -14927,7 +15103,10 @@ const NAV = [{
     l: "Subscriptions"
   }, {
     id: "wholesale",
-    l: "Wholesale"
+    l: "Wholesale/Manual"
+  }, {
+    id: "attribution",
+    l: "Creators"
   }]
 }, {
   g: "Marketing",
@@ -14947,9 +15126,6 @@ const NAV = [{
   }, {
     id: "ltv",
     l: "CAC Ceiling"
-  }, {
-    id: "attribution",
-    l: "Attribution"
   }, {
     id: "social",
     l: "Social"
@@ -15011,7 +15187,7 @@ const SUBTABS = {
   suppliers: ["Suppliers", "Ledger"],
   fulfillment: ["Fulfillment", "3PL rates"]
 };
-const PERIOD_PAGES = new Set(["boardroom", "pl", "rails", "revenue", "retention", "wholesale", "daily", "mktperf", "opshealth"]);
+const PERIOD_PAGES = new Set(["boardroom", "pl", "rails", "revenue", "retention", "wholesale", "attribution", "daily", "mktperf", "opshealth"]);
 const PAGE_GROUP = {};
 NAV.forEach(g => g.items.forEach(i => {
   PAGE_GROUP[i.id] = g.g;

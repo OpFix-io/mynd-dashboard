@@ -112,8 +112,8 @@ function Wholesale() {
   ];
   return (
     <div className="page-in">
-      <PageHead title="Wholesale and clinics" sub="The emerging channel. Commission-only rep, cold outbound."
-        meta="Wholesale orders never touch the order platform, which is why they're invisible in revenue." />
+      <PageHead title="Wholesale/Manual" sub="Wholesale, clinics, reships, samples and comps. Everything that ships without a normal checkout."
+        meta="These orders never touch the order platform, which is why they're invisible in revenue. Retail value here is a placeholder until each one is raised against a paid invoice." />
       <G c={4} style={{ marginBottom:24 }}>
         <KPI label="Active accounts" value="2" tone="warn" sub="of 5 in pipeline" />
         <KPI label="Wholesale revenue" value={fmt.usd(D.channels[2].v)} tone="ink" sub={PERIOD.label} delta={12.4} />
@@ -144,7 +144,7 @@ function Wholesale() {
 function Attribution() {
   return (
     <div className="page-in">
-      <PageHead title="Attribution" sub="Which channel earned which order."
+      <PageHead title="Creators" sub="Which creator and which channel earned which order."
         meta="Currently the weakest system in the business." />
       <Card pad={26} style={{ borderColor:"var(--bad)", background:"var(--bad-tint)", marginBottom:24 }}>
         <div style={{ display:"flex", gap:15, alignItems:"flex-start" }}>

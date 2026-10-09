@@ -10,7 +10,11 @@ const D2 = {
       { label:"Blended ROAS", value:"-", sub:"no spend to measure", tone:"mute", help:"Revenue attributed to ads divided by ad spend." },
       { label:"Blended CAC", value:"-", sub:"needs attribution", tone:"mute", help:"What it costs to acquire one paying customer, across all paid channels." },
       { label:"CAC ceiling", value:"$58", sub:"derived from 90-day contribution", tone:"warn", help:"The most you can pay for a customer and still be profitable inside 90 days." },
-      { label:"Planned Q4 budget", value:"$13,125", sub:"35% of the sweep", tone:"violet" },
+      { label:"MER", value:"-", sub:"no spend to measure", tone:"mute",
+        help:"Marketing efficiency ratio. Total revenue divided by total marketing spend across every channel, paid and unpaid. It counts new and repeat revenue together, so it says whether the whole marketing engine is efficient. Most DTC brands run 3.0x to 5.0x, but the real target depends on gross margin. Blank while spend is zero." },
+      { label:"aMER", value:"-", sub:"no spend to measure", tone:"mute",
+        help:"Acquisition MER. Revenue from first-time customers only, divided by total marketing spend. It says whether marketing pays for itself on acquisition alone. MER can look healthy while aMER is under 1.0, which means repeat revenue is hiding an acquisition loss. Blank while spend is zero." },
+      { label:"Marketing on hand", value:"$13,347", sub:"off the rule, spends down", tone:"violet" },
       { label:"Channels live", value:"1 of 4", sub:"Meta only", tone:"warn" },
     ],
     channels: [
@@ -73,7 +77,10 @@ const D2 = {
       { label:"Revenue from existing", value:"38.4%", sub:"of the 30 day total", tone:"warn", delta:2.1, help:"Any order from a customer who has bought before." },
       { label:"Revenue from new", value:"61.6%", sub:"first-time buyers", tone:"ink", delta:-2.1 },
       { label:"Email revenue", value:"$6,890", sub:"14.7% of total", tone:"info", delta:8.4 },
-      { label:"Referral code usage", value:"112", sub:"4.2% of orders", tone:"warn", delta:14.2 },
+      { label:"Referral code usage", value:"112", sub:"4.2% of orders", tone:"warn", delta:14.2,
+        help:"Orders that redeemed a discount code. A code is not a referral link: anyone who has seen the code can use it, so this measures discount reach rather than who referred whom." },
+      { label:"Customer referral links", value:"Not tracked", sub:"needs a per-customer link", tone:"mute",
+        help:"A referral link is unique to one customer, so it attributes a new order to the customer who sent it and a code cannot. Nothing issues or tracks these today. It needs a link generated per customer at checkout and the referrer carried through on the order." },
       { label:"Repeat rate", value:"22.8%", sub:"bought more than once", tone:"warn", delta:1.4 },
       { label:"Time to second order", value:"41 days", sub:"median", tone:"ink", delta:-6.2 },
     ],
@@ -129,7 +136,6 @@ const D2 = {
       { n:"Dubai milk chocolate",    cur:11.65, prev:10.25, basis:"supplier buildup" },
       { n:"Strawberry Mango gummies", cur:8.16, prev:8.16, basis:"supplier buildup" },
       { n:"Blue Raspberry gummies",   cur:8.16, prev:8.16, basis:"supplier buildup" },
-      { n:"Microdose capsules",       cur:10.37, prev:8.37, basis:"supplier buildup" },
       { n:"Love gummies",             cur:null, prev:null, basis:"unquoted" },
     ],
     costSeries: [
@@ -141,6 +147,11 @@ const D2 = {
   // ---------------------------------------------------------------- FULFILLMENT (moved)
   fulfillment: {
     shipments: { total:348, onPlatform:223, invisible:125, pct:35.9 },
+    // The gap runs both ways. Orders that never reached the warehouse are the dangerous
+    // direction: the customer paid, nothing shipped, and the first anyone hears of it is a
+    // dispute. Nothing measures this today, so the tile says so rather than showing a zero.
+    unshipped: { value:"Not measured", need:"A daily match of order platform orders against warehouse shipments, by order number",
+      note:"Orders placed on the order platform that never landed at the 3PL, so they were paid for and never shipped. At least one of these became a chargeback. The reverse of the invisible third, and the one that costs a customer." },
     breakdown: [
       { m:"Wholesale", v:48, tone:"info" },
       { m:"Samples", v:34, tone:"warn" },

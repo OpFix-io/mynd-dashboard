@@ -6,8 +6,8 @@ const D4 = {
   // ---------------------------------------------------------------- CASH FORECAST
   // Thirteen weeks from the current balance. Inflows net of fees and reserve.
   forecast: {
-    open: 68751,
-    floor: 23585,
+    open: 37838,
+    floor: 28400,
     weeks: [
       { w:"Sep 21", inn:10840, fixed:3240, variable:1510, debt:0 },
       { w:"Sep 28", inn:10620, fixed:3240, variable:1480, debt:9481, note:"Buyout Oct 1" },
@@ -27,20 +27,20 @@ const D4 = {
 
   // ---------------------------------------------------------------- TRANSACTIONS
   transactions: [
-    { d:"Sep 17", desc:"Rail A settlement",        acct:"BlueBanc · Settlement", cat:"Sales",            amt:1624,   st:"matched" },
+    { d:"Sep 17", desc:"Rail A settlement",        acct:"Bluebanc · Settlement", cat:"Sales",            amt:1624,   st:"matched" },
     { d:"Sep 17", desc:"Sweep to operating",       acct:"Mercury · Operating",   cat:"Transfer",         amt:4800,   st:"matched" },
-    { d:"Sep 16", desc:"Rail B settlement",        acct:"BlueBanc · Settlement", cat:"Sales",            amt:1138,   st:"matched" },
+    { d:"Sep 16", desc:"Rail B settlement",        acct:"Bluebanc · Settlement", cat:"Sales",            amt:1138,   st:"matched" },
     { d:"Sep 16", desc:"3PL monthly invoice",      acct:"Mercury · Operating",   cat:"Fulfillment",      amt:-1890,  st:"matched" },
     { d:"Sep 16", desc:"Email platform",           acct:"Chase card",            cat:"Software",         amt:-350,   st:"review" },
-    { d:"Sep 15", desc:"Rail C settlement",        acct:"BlueBanc · Settlement", cat:"Sales",            amt:612,    st:"matched" },
-    { d:"Sep 15", desc:"Rail C reserve hold",      acct:"BlueBanc · Settlement", cat:"Processing",       amt:-61,    st:"matched" },
+    { d:"Sep 15", desc:"Rail C settlement",        acct:"Bluebanc · Settlement", cat:"Sales",            amt:612,    st:"matched" },
+    { d:"Sep 15", desc:"Rail C reserve hold",      acct:"Bluebanc · Settlement", cat:"Processing",       amt:-61,    st:"matched" },
     { d:"Sep 15", desc:"Payroll",                  acct:"Mercury · Operating",   cat:"Payroll",          amt:-4210,  st:"matched" },
     { d:"Sep 14", desc:"Packaging supplier",       acct:"Chase card",            cat:"Cost of goods",    amt:-1480,  st:"matched" },
-    { d:"Sep 14", desc:"Refund, order 48213",      acct:"BlueBanc · Settlement", cat:"Refunds",          amt:-69,    st:"matched" },
+    { d:"Sep 14", desc:"Refund, order 48213",      acct:"Bluebanc · Settlement", cat:"Refunds",          amt:-69,    st:"matched" },
     { d:"Sep 13", desc:"Ingredient run",           acct:"Chase card",            cat:"Cost of goods",    amt:-2340,  st:"review" },
     { d:"Sep 12", desc:"Kitchen rent",             acct:"Mercury · Operating",   cat:"Rent",             amt:-2200,  st:"matched" },
     { d:"Sep 12", desc:"Wholesale invoice paid",   acct:"Mercury · Operating",   cat:"Sales",            amt:1380,   st:"matched" },
-    { d:"Sep 11", desc:"Unknown debit",            acct:"BlueBanc · Settlement", cat:"Uncategorized",    amt:-214,   st:"open" },
+    { d:"Sep 11", desc:"Unknown debit",            acct:"Bluebanc · Settlement", cat:"Uncategorized",    amt:-214,   st:"open" },
   ],
 
   // ---------------------------------------------------------------- REORDERS
@@ -101,7 +101,7 @@ const D4 = {
   // ---------------------------------------------------------------- SYNC STATUS
   sync: [
     { n:"Mercury",            last:"2 min ago",   every:"15 min",  s:"live" },
-    { n:"BlueBanc",           last:"2 min ago",   every:"15 min",  s:"live" },
+    { n:"Bluebanc",           last:"2 min ago",   every:"15 min",  s:"live" },
     { n:"Xero",               last:"1 hr ago",    every:"hourly",  s:"live" },
     { n:"Order platform",     last:"4 min ago",   every:"5 min",   s:"live" },
     { n:"Affiliate platform", last:"12 min ago",  every:"15 min",  s:"live" },

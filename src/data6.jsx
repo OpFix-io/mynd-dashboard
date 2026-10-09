@@ -3428,20 +3428,6 @@ const COST = {
   "Retired",
   "Manufacturer",
   "$8.16, for remaining sales"
- ],
- [
-  "Sea Salt dark chocolate",
-  "Chocolate",
-  "Tested, waiting on stock",
-  "Kitchen",
-  "$10.54 to $11.65"
- ],
- [
-  "Microdose capsules",
-  "Capsules",
-  "Never produced",
-  "Manufacturer",
-  "$9.67 to $10.37"
  ]
 ]
 };

@@ -15,7 +15,7 @@ function BoardFinancials({ go }) {
         <KPI label={D.unit[0].label} value={fmt.usd(pl["Revenue"].v)} tone="ink" onClick={()=>go("pl")} />
         <KPI label="Contribution margin" value={cm.value} tone="good" sub={cm.sub} onClick={()=>go("pl")} />
         <KPI label="Operating profit" value={fmt.usd(pl["Operating profit"].v)} tone="good" sub="before debt service and distributions" onClick={()=>go("pl")} />
-        <KPI label="Available cash" value="$68,751" tone="good" sub="floor $23,585" onClick={()=>go("cash")} />
+        <KPI label="Available cash" value="$37,838" tone="warn" sub="floor $28,400" onClick={()=>go("cash")} />
       </G>
       <G c={2} name="2h" gap={16} style={{ gridTemplateColumns:"1fr 1.2fr", marginBottom:24 }}>
         <Card pad={20}>
@@ -38,7 +38,7 @@ function BoardFinancials({ go }) {
           <BarChart data={D.revMonthly.map((r,i)=>({ ...r, tone:i===D.revMonthly.length-1?"accent":"info" }))} h={150} />
           <div style={{ height:18 }} />
           <SecLabel icon="money" right="seven months">Cash on hand</SecLabel>
-          <Line data={D.cashTrail} h={100} tone="good" vf={fmt.k} target={23585} tLabel="Floor" />
+          <Line data={D.cashTrail} h={100} tone="warn" vf={fmt.k} target={28400} tLabel="Floor" />
         </Card>
       </G>
       <G c={3} name="3" gap={16}>

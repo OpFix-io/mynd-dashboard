@@ -975,9 +975,10 @@ const D = {
     trend: [14, 24, 35, 45, 55]
   }],
   // Revenue per product is deliberately null. Units come from the warehouse read and revenue from the
-  // bank, and the two don't reconcile: 1,353 units in 30 days at the $72.66 average is about $98,000
-  // against $49,889 collected. Free and comped product covers roughly a third of it. The rest is open,
-  // and it sits on Data Health rather than being smoothed into a product table.
+  // bank, and the two don't reconcile: 1,353 units in 30 days priced at list is $94,457, being 1,298 at
+  // $69 and 55 Love gummies at $89, a $69.81 unit-weighted average. The bank got $49,889, so $44,568 is
+  // unexplained. Free and comped product covers roughly a third of it. The rest is open, and it sits on
+  // Data Health rather than being smoothed into a product table.
   subs: {
     // 94 active subscriptions against 905 approved customers. The retention curve is cumulative
     // survival from the first bill, measured on the CRM export to 25 September.
